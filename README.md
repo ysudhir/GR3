@@ -98,7 +98,7 @@ flowchart LR
     P -- transactions --> G
     GR3A -- requirements --> G
     G --> V --> S --> K
-    S -.->|"lineage: filing → gr3@version → source clause"| GR3A
+    S -.->|every filing traces to its GR3 version and source clause| GR3A
 ```
 
 ## Built on open patterns
