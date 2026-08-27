@@ -2,9 +2,104 @@
 
 **One portable, open format for every payments-reporting obligation, in every jurisdiction.**
 
-GR3 is the core format of **Agentic Reg Ops**: every regulatory reporting requirement — a Bundesbank Z4 circular in German, a SAFE BOP measure in Chinese, a BCRA FX regime in Spanish — becomes one Markdown + YAML record that humans read as a governed document and AI agents parse as structured data. Records live in an **llm-wiki** organized by region and country, are drafted by **JARO AI Agents** (makers), approved by **Reg Ops checkers**, and compiled into a **Regulatory Knowledge Base (RKB)** that produces regulatory reports, RFI responses, audit evidence packs, and ad hoc extracts — every answer citing `gr3@version#clause`.
+GR3 is the core format of **Agentic Reg Ops**: every regulatory reporting requirement — a Bundesbank Z4 circular in German, a SAFE BOP measure in Chinese, a BCRA FX regime in Spanish — becomes one Markdown + YAML record that humans read as a governed document and AI agents parse as structured data. GR3 builds on **RegGPT** — the Agentic Reg Ops product, supported by **JARO AI Agents** and the **RKB** (Regulatory Knowledge Base).
 
-GR3 builds on **RegGPT** — the Agentic Reg Ops product, supported by JARO AI Agents and the RKB.
+## Executive summary
+
+### The problem
+
+A global payments business files regulatory returns in every market it operates in — transaction reports, balance-of-payments statistics, central-bank returns, AML filings. Each obligation arrives as a circular, gazette notice, portal announcement, or schema release, written in the regulator's language and amended continually. The data side of this problem is largely solved: payments already flow through canonical stores.
+
+The unsolved side is the **interpretation layer** — what each regulator actually requires, which transactions are in scope, what the thresholds and deadlines are, how local terms map to the bank's data elements. Today that layer lives in country spreadsheets, email threads, and the heads of long-tenured Reg Ops staff. Every regulatory report, RFI, audit, and ad hoc extract re-derives it from scratch, and no two derivations agree.
+
+### The thesis
+
+Make the interpretation layer itself a governed, versioned corpus. Every obligation becomes one **GR3 Record** — a single portable document that Reg Ops sees and edits and AI agents read and interpret, one shared surface with no divergence between the human version and the machine version — living in an **llm-wiki** organized by region and country. JARO AI Agents draft; Reg Ops checkers approve everything; the RKB compiles what passes the gate and serves it with exact citations, so every figure in every filing traces to a clause.
+
+### The solution
+
+```mermaid
+flowchart LR
+    subgraph SRC["Sources — 60+ markets · 20+ languages"]
+        A1["Regulator portals<br/>gazettes · circulars"]
+        A2["Filings & schemas<br/>PDF · XSD · XBRL"]
+        A3["Legal intel feeds<br/>amendments · alerts"]
+    end
+    JARO["JARO AI Agents<br/>scan · extract · translate<br/>map · encode · QA"]
+    WIKI["llm-wiki<br/>GR3 Records — one portable format<br/>versioned · clause-anchored · bilingual"]
+    SME["Reg Ops checkers<br/>approve · comment · regenerate"]
+    RKB["RKB<br/>structured · vector · graph<br/>bitemporal"]
+    R1["Regulatory reports"]
+    R2["RFI responses"]
+    R3["Audit evidence packs"]
+    R4["Ad hoc extracts"]
+    A1 --> JARO
+    A2 --> JARO
+    A3 --> JARO
+    JARO -- draft --> WIKI
+    SME -- review / approve --> WIKI
+    WIKI -- compile on approval --> RKB
+    RKB --> R1
+    RKB --> R2
+    RKB --> R3
+    RKB --> R4
+```
+
+1. **Maker — JARO AI Agents.** Scan regulators, extract requirements from the original language, translate (segment-aligned, originals immutable), map data elements to an ISO 20022-keyed dictionary, and encode machine-evaluable rule twins. Every drafted fact must cite an anchored clause or CI rejects it.
+2. **Checker — Reg Ops.** Country SMEs review each draft (diff + anchored clauses + CI results) and approve or request changes; a four-eyes approver co-signs anything entering effect. Agents cannot approve, merge, or file — enforced by runtime policy.
+3. **Regenerate on feedback.** Checker comments become instructions: JARO regenerates reg reports, RFI responses, audit packs, or extracts with the feedback applied — back through the same review gate.
+4. **Serve from the RKB.** Approved records compile into three synchronized indexes; retrieval is citation-mandatory (`gr3@version#clause`) and bitemporal (`as_of_effective`, `as_of_knowledge`).
+
+Every record moves through an explicit lifecycle — agents own the left of the pipeline, humans own the gate, the calendar owns activation:
+
+```mermaid
+flowchart LR
+    D1["Detected<br/>(agent)"] --> D2["Drafted<br/>(agent)"] --> D3["Linted<br/>(CI)"] --> D4["In review<br/>(country SME)"] --> D5["Approved<br/>(four-eyes)"] --> D6["Effective<br/>(date-gated)"] --> D7["Superseded<br/>(next version)"]
+    D4 -. changes requested .-> D2
+```
+
+> **Fail-closed:** the RKB serves, and filings use, only versions that are **Approved and Effective**. Draft and in-review states are invisible downstream.
+
+On every approval, a deterministic compiler fans the record into the RKB's three indexes — no guessed chunking, because the input is structured:
+
+```mermaid
+flowchart LR
+    GR3["GR3 page<br/>frontmatter facts · prose ·<br/>typed links · clause anchors"]
+    C["RKB compiler<br/>deterministic build"]
+    subgraph RKBX["RKB — three synchronized indexes"]
+        S1["Structured store<br/>deadlines · thresholds · elements"]
+        S2["Vector index<br/>multilingual passages"]
+        S3["Knowledge graph<br/>implements · supersedes · maps-to"]
+    end
+    Q1["RFI copilot<br/>cite gr3@ver#35;clause"]
+    Q2["Audit packs<br/>as-of both clocks"]
+    Q3["Extract API<br/>NL → extract spec"]
+    Q4["Report generation<br/>contract · rules · calendar"]
+    GR3 -- on approval --> C
+    C --> S1
+    C --> S2
+    C --> S3
+    RKBX --> Q1
+    RKBX --> Q2
+    RKBX --> Q3
+    RKBX --> Q4
+```
+
+The same records that answer questions also generate the reports — generator and validator read the same GR3, so a filing cannot satisfy a different interpretation than the one Reg Ops approved:
+
+```mermaid
+flowchart LR
+    P["Canonical payments store<br/>ISO 20022-aligned"]
+    GR3A["GR3 — approved<br/>contract · rules · calendar"]
+    G["Report generator<br/>select · map · render"]
+    V["Validator<br/>same GR3 rules"]
+    S["Submission<br/>regulator channel"]
+    K["Ack tracking"]
+    P -- transactions --> G
+    GR3A -- requirements --> G
+    G --> V --> S --> K
+    S -. "lineage: filing → gr3@version → source clause" .-> GR3A
+```
 
 ## Built on open patterns
 
@@ -51,13 +146,6 @@ lifecycle:
   knowledge_from: 2024-11-18          # clock 2 — when we approved the interpretation
 ---
 ```
-
-## Operating model
-
-1. **Maker (JARO AI Agents)** — scan regulators, extract from the original language, translate (segment-aligned, originals immutable), map data elements to an ISO 20022-keyed dictionary, encode rule twins. Every drafted fact must cite an anchored clause or CI rejects it.
-2. **Checker (Reg Ops)** — country SMEs review drafts (diff + anchored clauses + CI results) and approve or request changes; a four-eyes approver co-signs anything entering effect. Agents cannot approve, merge, or file — by runtime policy.
-3. **Regenerate on feedback** — checker comments become instructions: JARO regenerates reg reports, RFI responses, audit packs, or extracts with the feedback applied, back through the same gate.
-4. **Serve from the RKB** — approved records compile into structured + vector + graph indexes; retrieval is citation-mandatory and bitemporal (`as_of_effective`, `as_of_knowledge`).
 
 ## Status
 
