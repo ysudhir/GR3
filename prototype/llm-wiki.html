@@ -1,0 +1,1360 @@
+<title>JARO llm-wiki</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F7F8F6;
+    --surface: #FFFFFF;
+    --ink: #1B2620;
+    --ink-soft: #47564E;
+    --ink-faint: #7E8B84;
+    --line: #D8DED8;
+    --line-strong: #B9C2BB;
+    --accent: #1E6E58;
+    --accent-ink: #175D4A;
+    --accent-soft: #E4EFE9;
+    --warn: #9A6B10;
+    --warn-soft: #F5ECD8;
+    --alert: #A93B2E;
+    --alert-soft: #F6E9E6;
+    --code-bg: #EFF2EE;
+    --serif: "Spectral", Georgia, serif;
+    --sans: "Public Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #121714; --surface: #1A211C; --ink: #E5ECE6; --ink-soft: #A5B2A9;
+      --ink-faint: #6E7B73; --line: #2C352F; --line-strong: #41503F;
+      --accent: #4FBF9C; --accent-ink: #5ECDA9; --accent-soft: #1D3229;
+      --warn: #D9A544; --warn-soft: #34290F; --alert: #E07862; --alert-soft: #3A241F;
+      --code-bg: #161D18;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #121714; --surface: #1A211C; --ink: #E5ECE6; --ink-soft: #A5B2A9;
+    --ink-faint: #6E7B73; --line: #2C352F; --line-strong: #41503F;
+    --accent: #4FBF9C; --accent-ink: #5ECDA9; --accent-soft: #1D3229;
+    --warn: #D9A544; --warn-soft: #34290F; --alert: #E07862; --alert-soft: #3A241F;
+    --code-bg: #161D18;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 14.5px; line-height: 1.55; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: var(--accent-ink); }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 12px 22px; border-bottom: 2px solid var(--ink);
+    background: var(--surface); position: sticky; top: 0; z-index: 20;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 10px; }
+  .wordmark .jaro { font-family: var(--mono); font-weight: 500; font-size: 1.25rem; letter-spacing: 0.14em; color: var(--accent-ink); }
+  .wordmark .sub { font-size: 0.78rem; color: var(--ink-soft); }
+  .proto-badge {
+    font-family: var(--mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
+    border: 1px solid var(--line-strong); color: var(--ink-faint); padding: 3px 8px; border-radius: 3px;
+  }
+  .topnav { margin-left: auto; display: flex; gap: 6px; }
+  .topnav button {
+    background: none; border: 1px solid transparent; padding: 7px 14px; border-radius: 4px;
+    font-weight: 600; font-size: 0.86rem; color: var(--ink-soft);
+  }
+  .topnav button.active { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+  .topnav .count {
+    display: inline-block; min-width: 18px; text-align: center; margin-left: 6px;
+    background: var(--warn-soft); color: var(--warn); border-radius: 9px; font-size: 0.7rem; padding: 1px 5px;
+    font-family: var(--mono);
+  }
+
+  /* ---------- layout ---------- */
+  .shell { display: flex; min-height: calc(100vh - 60px); max-width: 1440px; margin: 0 auto; }
+  .sidebar {
+    width: 285px; flex: none; border-right: 1px solid var(--line); padding: 18px 14px 40px;
+    background: var(--ground);
+  }
+  .main { flex: 1; min-width: 0; padding: 26px 34px 80px; }
+  @media (max-width: 900px) {
+    .shell { flex-direction: column; }
+    .sidebar { width: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    .main { padding: 20px 16px 60px; }
+  }
+
+  /* ---------- sidebar tree ---------- */
+  .side-label {
+    font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.11em;
+    color: var(--ink-faint); margin: 14px 8px 6px;
+  }
+  details.region { margin-bottom: 2px; }
+  details.region > summary {
+    list-style: none; cursor: pointer; padding: 7px 8px; font-weight: 700; font-size: 0.85rem;
+    display: flex; align-items: center; gap: 8px; border-radius: 4px;
+  }
+  details.region > summary:hover { background: var(--accent-soft); }
+  details.region > summary::before { content: "▸"; font-size: 0.7rem; color: var(--ink-faint); transition: transform 0.12s; }
+  details.region[open] > summary::before { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) { details.region > summary::before { transition: none; } }
+  .region-count { margin-left: auto; font-family: var(--mono); font-size: 0.68rem; color: var(--ink-faint); font-weight: 400; }
+  .country { margin-left: 14px; border-left: 1px solid var(--line); padding-left: 6px; }
+  .country-head { display: flex; align-items: center; gap: 7px; padding: 5px 6px; font-size: 0.84rem; font-weight: 600; color: var(--ink-soft); }
+  .doc-link {
+    display: flex; align-items: center; gap: 7px; width: 100%; text-align: left;
+    background: none; border: none; padding: 4px 6px 4px 18px; border-radius: 4px;
+    font-size: 0.8rem; color: var(--ink-soft); font-family: var(--mono);
+  }
+  .doc-link:hover { background: var(--accent-soft); color: var(--accent-ink); }
+  .doc-link.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 500; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .dot.effective { background: var(--accent); }
+  .dot.review { background: var(--warn); }
+  .dot.draft { background: var(--ink-faint); }
+
+  /* ---------- pills & chips ---------- */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px;
+    font-family: var(--mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500;
+    border: 1px solid;
+  }
+  .pill.effective { color: var(--accent-ink); background: var(--accent-soft); border-color: var(--accent); }
+  .pill.review { color: var(--warn); background: var(--warn-soft); border-color: var(--warn); }
+  .pill.draft { color: var(--ink-faint); background: var(--code-bg); border-color: var(--line-strong); }
+  .pill.changes { color: var(--alert); background: var(--alert-soft); border-color: var(--alert); }
+  .pill.approved { color: var(--accent-ink); background: var(--accent-soft); border-color: var(--accent); }
+  .chip {
+    display: inline-block; font-family: var(--mono); font-size: 0.7rem; padding: 2px 8px;
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 3px; color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .chip.anchor { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+
+  /* ---------- doc page ---------- */
+  .crumb { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); margin-bottom: 14px; }
+  .crumb b { color: var(--ink-soft); font-weight: 500; }
+  .doc-head { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 20px; }
+  .doc-head h1 { font-family: var(--serif); font-weight: 600; font-size: 1.7rem; line-height: 1.2; margin: 0 0 10px; text-wrap: balance; }
+  .doc-head .idrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .gr3-id { font-family: var(--mono); font-size: 0.8rem; color: var(--accent-ink); }
+  .view-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 5px; overflow: hidden; margin-left: auto; }
+  .view-toggle button { background: var(--surface); border: none; padding: 6px 14px; font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); }
+  .view-toggle button.on { background: var(--accent); color: var(--surface); }
+  :root[data-theme="dark"] .view-toggle button.on { color: #10231C; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .view-toggle button.on { color: #10231C; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px; margin-bottom: 18px; }
+  .panel h2 {
+    margin: 0 0 12px; font-size: 0.72rem; font-family: var(--mono); text-transform: uppercase;
+    letter-spacing: 0.11em; color: var(--ink-faint); font-weight: 500;
+  }
+  .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px 24px; }
+  .facts dt { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); font-family: var(--mono); margin-bottom: 2px; }
+  .facts dd { margin: 0; font-size: 0.88rem; color: var(--ink); font-weight: 500; }
+  .facts .wide { grid-column: 1 / -1; }
+
+  .planes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .planes { grid-template-columns: 1fr; } }
+  .plane h3 { margin: 0 0 8px; font-size: 0.78rem; font-weight: 700; }
+  .plane p { margin: 0; font-size: 0.86rem; color: var(--ink-soft); }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+    padding: 12px 14px; overflow-x: auto; font-size: 0.74rem; line-height: 1.55; margin: 0;
+    font-family: var(--mono); color: var(--ink);
+  }
+  .sync-note { font-family: var(--mono); font-size: 0.68rem; color: var(--accent-ink); margin-top: 10px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+  th { text-align: left; font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-faint); font-weight: 500; padding: 6px 14px 6px 0; border-bottom: 1px solid var(--line-strong); }
+  td { padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  td.k { color: var(--ink); font-weight: 600; }
+  .tbl-wrap { overflow-x: auto; }
+
+  .clauses { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  @media (max-width: 760px) { .clauses { grid-template-columns: 1fr; } }
+  .clause { padding: 14px 16px; }
+  .clause + .clause { border-left: 1px solid var(--line); }
+  @media (max-width: 760px) { .clause + .clause { border-left: none; border-top: 1px solid var(--line); } }
+  .clause .lang-tag { font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); margin-bottom: 8px; }
+  .clause .original { background: var(--code-bg); }
+  .clause p { margin: 0; font-family: var(--serif); font-size: 0.92rem; line-height: 1.6; }
+  .clause.src { background: var(--code-bg); }
+  .clause[dir="rtl"] p { text-align: right; }
+  .prov { font-family: var(--mono); font-size: 0.66rem; color: var(--ink-faint); margin-top: 10px; }
+
+  .note { border-left: 3px solid var(--accent); padding: 10px 14px; background: var(--accent-soft); border-radius: 0 4px 4px 0; margin-bottom: 10px; }
+  .note p { margin: 0 0 4px; font-size: 0.86rem; }
+  .note .byline { font-family: var(--mono); font-size: 0.66rem; color: var(--ink-faint); }
+
+  .chain { display: flex; gap: 0; flex-wrap: wrap; }
+  .chain-step { flex: 1; min-width: 150px; padding: 10px 14px; border: 1px solid var(--line); margin: -1px 0 0 -1px; }
+  .chain-step .role { font-family: var(--mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-faint); }
+  .chain-step .who { font-weight: 600; font-size: 0.84rem; margin: 3px 0 1px; }
+  .chain-step .when { font-size: 0.72rem; color: var(--ink-faint); font-family: var(--mono); }
+  .chain-step.agent .who { color: var(--accent-ink); }
+
+  .verrow { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 0.82rem; flex-wrap: wrap; }
+  .verrow:last-child { border-bottom: none; }
+  .verrow .v { font-family: var(--mono); font-weight: 500; color: var(--ink); min-width: 60px; }
+
+  /* ---------- workbench ---------- */
+  .wb-head h1 { font-family: var(--serif); font-weight: 600; font-size: 1.6rem; margin: 0 0 6px; }
+  .wb-head p { margin: 0 0 22px; color: var(--ink-soft); max-width: 62ch; }
+  .qcard { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 5px; margin-bottom: 16px; overflow: hidden; }
+  .qcard-head { display: flex; align-items: center; gap: 12px; padding: 13px 18px; flex-wrap: wrap; cursor: pointer; }
+  .qcard-head:hover { background: var(--accent-soft); }
+  .qcard-head .qt { font-weight: 700; font-size: 0.9rem; }
+  .qcard-head .qid { font-family: var(--mono); font-size: 0.72rem; color: var(--accent-ink); }
+  .qcard-head .maker { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-faint); margin-left: auto; }
+  .qbody { border-top: 1px solid var(--line); padding: 16px 18px; display: none; }
+  .qcard.open .qbody { display: block; }
+  .qsec { margin-bottom: 16px; }
+  .qsec h3 { margin: 0 0 8px; font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 500; }
+  .diff { font-family: var(--mono); font-size: 0.74rem; line-height: 1.6; border: 1px solid var(--line); border-radius: 4px; overflow-x: auto; }
+  .diff div { padding: 2px 12px; white-space: pre; }
+  .diff .del { background: var(--alert-soft); color: var(--alert); }
+  .diff .add { background: var(--accent-soft); color: var(--accent-ink); }
+  .diff .ctx { color: var(--ink-faint); }
+  .ci-line { font-family: var(--mono); font-size: 0.7rem; color: var(--accent-ink); margin-top: 8px; }
+
+  .comment { border: 1px solid var(--line); border-radius: 4px; padding: 10px 14px; margin-bottom: 8px; background: var(--ground); }
+  .comment .byline { font-family: var(--mono); font-size: 0.66rem; color: var(--ink-faint); margin-bottom: 4px; }
+  .comment p { margin: 0; font-size: 0.85rem; }
+  .comment.agent { border-left: 3px solid var(--accent); }
+  .comment.human { border-left: 3px solid var(--warn); }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 4px; padding: 7px 14px; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
+  .btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--ground); }
+  .btn.primary:hover { color: var(--ground); filter: brightness(1.06); }
+  .btn.danger:hover { border-color: var(--alert); color: var(--alert); }
+  textarea, select {
+    font: inherit; font-size: 0.84rem; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line-strong); border-radius: 4px; padding: 8px 10px; width: 100%;
+  }
+  textarea { min-height: 64px; resize: vertical; }
+  .regen-panel { border: 1px dashed var(--accent); border-radius: 4px; padding: 14px; margin-top: 12px; background: var(--accent-soft); }
+  .regen-panel label { font-size: 0.7rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); display: block; margin: 8px 0 4px; }
+  .progress { font-family: var(--mono); font-size: 0.74rem; color: var(--accent-ink); margin-top: 10px; }
+  .newdraft { border: 1px solid var(--accent); background: var(--surface); border-radius: 4px; padding: 12px 16px; margin-top: 12px; }
+  .newdraft .nd-title { font-weight: 700; font-size: 0.86rem; color: var(--accent-ink); margin-bottom: 4px; }
+  .newdraft p { margin: 0 0 6px; font-size: 0.82rem; color: var(--ink-soft); }
+
+  /* ---------- home ---------- */
+  .home h1 { font-family: var(--serif); font-weight: 600; font-size: 1.8rem; margin: 0 0 10px; }
+  .home .lede { color: var(--ink-soft); max-width: 64ch; margin: 0 0 24px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 26px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; }
+  .stat .n { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); font-family: var(--mono); }
+  .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .how .panel { margin-bottom: 0; }
+  .how .panel p { font-size: 0.84rem; color: var(--ink-soft); margin: 0; }
+  .how .panel .step { font-family: var(--mono); font-size: 0.66rem; color: var(--accent-ink); letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+
+  .stub-note { border: 1px dashed var(--line-strong); border-radius: 4px; padding: 16px 20px; color: var(--ink-soft); font-size: 0.88rem; max-width: 60ch; }
+  .footer-note { margin-top: 40px; font-family: var(--mono); font-size: 0.66rem; color: var(--ink-faint); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<header class="topbar">
+  <div class="wordmark"><span class="jaro">JARO</span><span class="sub">Agentic Reg Ops · llm-wiki</span></div>
+  <span class="proto-badge">Concept prototype · illustrative data</span>
+  <nav class="topnav" aria-label="Main">
+    <button id="nav-wiki" class="active" onclick="go('home')">Wiki</button>
+    <button id="nav-wb" onclick="go('workbench')">Checker workbench<span class="count" id="wb-count">3</span></button>
+  </nav>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" aria-label="Jurisdictions">
+    <div class="side-label">Jurisdictions · by region</div>
+    <div id="tree"></div>
+    <div class="side-label" style="margin-top:22px">Legend</div>
+    <div style="font-size:0.74rem; color:var(--ink-soft); padding:0 8px; display:grid; gap:5px;">
+      <span><span class="dot effective" style="display:inline-block"></span> effective</span>
+      <span><span class="dot review" style="display:inline-block"></span> in review</span>
+      <span><span class="dot draft" style="display:inline-block"></span> draft / backfill</span>
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+// ------------------------------------------------------------------
+// Data — illustrative corpus
+// ------------------------------------------------------------------
+const DATA = {
+  regions: [
+    { name: "EMEA", countries: [
+      { name: "Germany", code: "DE", docs: ["de-z4", "de-z10"] },
+      { name: "United Kingdom", code: "GB", docs: ["gb-boe"] },
+      { name: "France", code: "FR", docs: ["fr-eco"] },
+      { name: "Switzerland", code: "CH", docs: ["ch-snb"] },
+      { name: "UAE", code: "AE", docs: ["ae-brf"] },
+      { name: "South Africa", code: "ZA", docs: ["za-sarb"] },
+    ]},
+    { name: "APAC", countries: [
+      { name: "Japan", code: "JP", docs: ["jp-bop"] },
+      { name: "China", code: "CN", docs: ["cn-safe"] },
+      { name: "Hong Kong SAR", code: "HK", docs: ["hk-hkma"] },
+      { name: "Korea", code: "KR", docs: ["kr-bok"] },
+      { name: "Singapore", code: "SG", docs: ["sg-mas610"] },
+      { name: "India", code: "IN", docs: ["in-feters"] },
+      { name: "Australia", code: "AU", docs: ["au-ifti", "au-apra"] },
+    ]},
+    { name: "North America", countries: [
+      { name: "United States", code: "US", docs: ["us-ctr"] },
+      { name: "Canada", code: "CA", docs: ["ca-fintrac"] },
+    ]},
+    { name: "Latin America", countries: [
+      { name: "Brazil", code: "BR", docs: ["br-fx"] },
+      { name: "Mexico", code: "MX", docs: ["mx-banxico"] },
+      { name: "Argentina", code: "AR", docs: ["ar-bcra"] },
+      { name: "Colombia", code: "CO", docs: ["co-banrep"] },
+    ]},
+  ],
+  docs: {
+    "de-z4": {
+      full: true, region: "EMEA", country: "Germany",
+      id: "gr3:de.bbk.awv-z4", version: "4.2.0", status: "effective",
+      title: "External Payments Report (Z4) — Zahlungen im Außenwirtschaftsverkehr",
+      langs: "DE → EN",
+      facts: [
+        ["Regulator", "Deutsche Bundesbank"], ["Legal basis", "AWV §67(1)"],
+        ["Report code", "Z4"], ["Channel", "Bundesbank AMS portal"],
+        ["Format", "XML · AMS schema v3"], ["Frequency", "Monthly"],
+        ["Deadline", "7th calendar day, following month"], ["Threshold", "EUR 12,500"],
+        ["Who must report", "Resident entities, incl. bank branches"],
+        ["Effective from", "2025-01-01"], ["Review by", "2026-11-01"],
+      ],
+      triggerProse: "Incoming or outgoing cross-border payments above EUR 12,500 or equivalent, excluding goods invoices settled within 12 months.",
+      triggerRule: 'amount_eur > 12500\nand counterparty.country != "DE"\nand "goods_settlement_short_term"\n    not in exemptions',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#sec-67"],
+        ["dict:counterparty.country", "pacs.008 …/Cdtr/PstlAdr/Ctry", "#sec-67"],
+        ["dict:purpose.code", "Bundesbank Kennzahl list", "#annex-lv"],
+      ],
+      clause: {
+        anchor: "src/de/awv-2024.de.pdf#sec-67",
+        origLang: "Deutsch (original — evidence)", orig:
+          "„Zahlungen von mehr als 12 500 Euro oder Gegenwert, die Inländer von Ausländern entgegennehmen oder an Ausländer leisten, sind der Deutschen Bundesbank zu melden …“",
+        en: "“Payments of more than EUR 12,500 or equivalent value which residents receive from non-residents or make to non-residents must be reported to the Deutsche Bundesbank …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2024-11-12 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Bundesbank confirmed in circular 2024/11 that netted treasury flows are reportable gross, not net. Decided against netting after written guidance.", by: "sme.de-payments · 2024-11-15" },
+        { text: "IBAN-less instant payments: pending clarification — see draft v4.3.0 in the checker workbench.", by: "jaro.consistency-qa · 2026-07-30" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.4", when: "2024-11-08 · governance event 9f3a…c21", agent: true },
+        { role: "Checker", who: "sme.de-payments", when: "2024-11-15 · approved" },
+        { role: "Four-eyes", who: "regops.lead-emea", when: "2024-11-18 · co-signed" },
+      ],
+      versions: [
+        ["4.3.0", "draft — in checker review (circular 2026/07)", "review"],
+        ["4.2.0", "effective since 2025-01-01 — this page", "effective"],
+        ["4.1.0", "superseded 2024-12-31", "draft"],
+      ],
+    },
+    "de-z10": {
+      full: false, region: "EMEA", country: "Germany",
+      id: "gr3:de.bbk.awv-z10", version: "2.0.1", status: "effective",
+      title: "Securities & Financial Derivatives Report (Z10)", langs: "DE → EN",
+      stub: "Effective record — condensed view. Payments in securities settlement above threshold, monthly to Bundesbank AMS.",
+    },
+    "jp-bop": {
+      full: true, region: "APAC", country: "Japan",
+      id: "gr3:jp.boj.fefta-bop", version: "3.1.0", status: "effective",
+      title: "FEFTA Balance of Payments Report — 国際収支報告",
+      langs: "JA → EN",
+      facts: [
+        ["Regulator", "Bank of Japan (for MoF)"], ["Legal basis", "FEFTA Art. 55"],
+        ["Report code", "BOP §55"], ["Channel", "BOJ online reporting"],
+        ["Format", "Fixed-format / CSV"], ["Frequency", "Per transaction + monthly"],
+        ["Deadline", "Within 10 days (per-txn class)"], ["Threshold", "JPY 30,000,000"],
+        ["Effective from", "2024-04-01"], ["Review by", "2026-10-01"],
+      ],
+      triggerProse: "Payments between Japan residents and non-residents exceeding JPY 30 million (or equivalent), reportable by the resident via their bank.",
+      triggerRule: 'amount_jpy > 30000000\nand is_cross_border(txn)\nand payer_or_payee.residency == "JP"',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#art-55"],
+        ["dict:purpose.code", "BOJ purpose classification", "#annex-1"],
+      ],
+      clause: {
+        anchor: "src/jp/fefta-2024.ja.pdf#art-55",
+        origLang: "日本語 (original — evidence)", orig:
+          "「居住者又は非居住者は、政令で定めるところにより、支払等の内容を財務大臣に報告しなければならない …」",
+        en: "“Residents or non-residents must, as provided by cabinet order, report the content of payments and similar transactions to the Minister of Finance …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2024-03-22 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Reporting is via the bank when payment passes through a licensed bank — our filing obligation, not the client's, for in-scope flows.", by: "sme.jp-payments · 2024-03-25" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.1", when: "2024-03-18 · governance event 41bd…e07", agent: true },
+        { role: "Checker", who: "sme.jp-payments", when: "2024-03-25 · approved" },
+        { role: "Four-eyes", who: "regops.lead-apac", when: "2024-03-28 · co-signed" },
+      ],
+      versions: [["3.1.0", "effective since 2024-04-01 — this page", "effective"]],
+    },
+    "sg-mas610": {
+      full: true, region: "APAC", country: "Singapore",
+      id: "gr3:sg.mas.mas610", version: "5.0.2", status: "effective",
+      title: "MAS 610 — Statistical Return for Banks", langs: "EN",
+      facts: [
+        ["Regulator", "Monetary Authority of Singapore"], ["Legal basis", "Banking Act s.26, MAS Notice 610"],
+        ["Report code", "MAS 610"], ["Channel", "MASNET"],
+        ["Format", "XBRL-like templated forms"], ["Frequency", "Monthly / quarterly by appendix"],
+        ["Deadline", "14 days after period end"], ["Effective from", "2025-06-01"],
+        ["Review by", "2027-01-15"],
+      ],
+      triggerProse: "All licensed banks submit the full return; payments-relevant appendices cover assets, liabilities, and flows by counterparty country and currency.",
+      triggerRule: "entity.license == \"bank_sg\"\n→ full return due per calendar\n(appendix scope from template map)",
+      contract: [
+        ["dict:balance.by-country", "camt.053 aggregates", "#app-b1"],
+        ["dict:flows.by-currency", "pacs.008 aggregates", "#app-d3"],
+      ],
+      clause: {
+        anchor: "src/sg/mas-notice-610.en.pdf#para-4",
+        origLang: "English (original — evidence)", orig:
+          "“A bank in Singapore shall submit to the Authority the returns set out in Appendices B1 to L, at such intervals as specified …”",
+        en: "(source is English — no translation layer)",
+        prov: "no translation required · anchors verified 2025-05-20",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Appendix mapping maintained as a template map page; changes to appendix scope version this GR3, not the dictionary.", by: "sme.sg-reporting · 2025-05-22" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.3", when: "2025-05-12 · governance event 77aa…f19", agent: true },
+        { role: "Checker", who: "sme.sg-reporting", when: "2025-05-22 · approved" },
+        { role: "Four-eyes", who: "regops.lead-apac", when: "2025-05-26 · co-signed" },
+      ],
+      versions: [["5.0.2", "effective since 2025-06-01 — this page", "effective"]],
+    },
+    "ae-brf": {
+      full: true, region: "EMEA", country: "UAE",
+      id: "gr3:ae.cbuae.brf", version: "1.1.0", status: "review",
+      title: "CBUAE Banking Return Forms — payments schedules", langs: "AR → EN",
+      facts: [
+        ["Regulator", "Central Bank of the UAE"], ["Legal basis", "CBUAE Circular — BRF"],
+        ["Report code", "BRF (payments schedules)"], ["Channel", "CBUAE portal"],
+        ["Format", "Templated forms"], ["Frequency", "Monthly / quarterly"],
+        ["Status", "v1.1.0 in checker review"],
+      ],
+      triggerProse: "Licensed banks file BRF schedules; payments schedules cover cross-border flows by corridor and currency.",
+      triggerRule: "entity.license == \"bank_ae\"\n→ schedules due per calendar",
+      contract: [
+        ["dict:flows.by-corridor", "pacs.008 aggregates", "#sch-7"],
+      ],
+      clause: {
+        anchor: "src/ae/cbuae-brf.ar.pdf#sch-7",
+        origLang: "العربية (original — evidence)", orig:
+          "«على البنوك المرخصة تقديم البيانات الدورية إلى المصرف المركزي وفقاً للنماذج والجداول المحددة …»",
+        en: "“Licensed banks must submit periodic data to the Central Bank in accordance with the specified forms and schedules …”",
+        prov: "translation: jaro.translator@2.3 · human review pending — draft in workbench",
+        dir: "rtl",
+      },
+      notes: [
+        { text: "Low-confidence mapping on corridor granularity (emirate-level vs country-level) — blocked on SME input, see workbench.", by: "jaro.mapper@1.9 · 2026-08-12" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.4", when: "2026-08-10 · governance event b2c4…a90", agent: true },
+        { role: "Checker", who: "sme.ae-reporting — pending", when: "—" },
+      ],
+      versions: [
+        ["1.1.0", "draft — in checker review", "review"],
+        ["1.0.0", "effective since 2025-09-01", "effective"],
+      ],
+    },
+    "br-fx": {
+      full: true, region: "Latin America", country: "Brazil",
+      id: "gr3:br.bcb.fx-flows", version: "2.2.0", status: "effective",
+      title: "BCB FX & Capital Flow Reporting", langs: "PT → EN",
+      facts: [
+        ["Regulator", "Banco Central do Brasil"], ["Legal basis", "Resolução BCB (FX regs)"],
+        ["Report code", "FX flows"], ["Channel", "BCB systems"],
+        ["Format", "Structured electronic"], ["Frequency", "Per-event + periodic"],
+        ["Effective from", "2024-10-01"], ["Review by", "2026-12-01"],
+      ],
+      triggerProse: "FX transactions and cross-border transfers registered with BCB; per-event registration with periodic aggregate confirmation.",
+      triggerRule: "txn.type in FX_SET\nand leg.country == \"BR\"",
+      contract: [
+        ["dict:fx.pair", "pacs.009 / market data", "#cap-3"],
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#cap-3"],
+      ],
+      clause: {
+        anchor: "src/br/bcb-fx.pt.pdf#cap-3",
+        origLang: "Português (original — evidence)", orig:
+          "“As operações no mercado de câmbio devem ser registradas no Banco Central do Brasil na forma e nas condições estabelecidas …”",
+        en: "“Foreign-exchange market transactions must be registered with the Central Bank of Brazil in the form and under the conditions established …”",
+        prov: "translation: jaro.translator@2.2 · human-reviewed 2024-09-14 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Registration is transaction-time, not report-time — modeled as a per-event obligation with a periodic reconciliation return.", by: "sme.br-fx · 2024-09-16" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.2", when: "2024-09-10 · governance event 5e77…d43", agent: true },
+        { role: "Checker", who: "sme.br-fx", when: "2024-09-16 · approved" },
+        { role: "Four-eyes", who: "regops.lead-latam", when: "2024-09-18 · co-signed" },
+      ],
+      versions: [["2.2.0", "effective since 2024-10-01 — this page", "effective"]],
+    },
+    "us-ctr": {
+      full: true, region: "North America", country: "United States",
+      id: "gr3:us.fincen.ctr", version: "6.0.0", status: "effective",
+      title: "FinCEN Currency Transaction Report (CTR)", langs: "EN",
+      facts: [
+        ["Regulator", "FinCEN (US Treasury)"], ["Legal basis", "31 CFR §1010.311"],
+        ["Report code", "CTR — FinCEN Form 112"], ["Channel", "BSA E-Filing"],
+        ["Format", "FinCEN XML"], ["Frequency", "Per event"],
+        ["Deadline", "15 days after transaction"], ["Threshold", "USD 10,000 (currency)"],
+        ["Effective from", "2024-01-01"], ["Review by", "2026-09-30"],
+      ],
+      triggerProse: "Currency transactions over USD 10,000 by, through, or to the bank in one business day by or on behalf of one person — aggregated.",
+      triggerRule: 'sum_by(person, business_day,\n  currency_txns) > 10000',
+      contract: [
+        ["dict:cash.amount", "teller / cash systems", "#1010-311"],
+        ["dict:person.aggregation-key", "KYC identifiers", "#1010-313"],
+      ],
+      clause: {
+        anchor: "src/us/31cfr-1010.en.pdf#s-311",
+        origLang: "English (original — evidence)", orig:
+          "“Each financial institution … shall file a report of each deposit, withdrawal, exchange of currency or other payment or transfer … which involves a transaction in currency of more than $10,000 …”",
+        en: "(source is English — no translation layer)",
+        prov: "anchors verified 2024-01-05",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Aggregation across branches per §1010.313 — the rule twin models per-person business-day aggregation explicitly.", by: "sme.us-bsa · 2024-01-08" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.0", when: "2023-12-14 · governance event 0ac1…992", agent: true },
+        { role: "Checker", who: "sme.us-bsa", when: "2024-01-08 · approved" },
+        { role: "Four-eyes", who: "regops.lead-na", when: "2024-01-10 · co-signed" },
+      ],
+      versions: [["6.0.0", "effective since 2024-01-01 — this page", "effective"]],
+    },
+    "fr-eco": {
+      full: true, region: "EMEA", country: "France",
+      id: "gr3:fr.bdf.eco", version: "1.0.0", status: "effective",
+      title: "Banque de France ECO — Direct Balance-of-Payments Declarations",
+      langs: "FR → EN",
+      facts: [
+        ["Regulator", "Banque de France"], ["Legal basis", "Code monétaire et financier L.141-6"],
+        ["Report code", "ECO"], ["Channel", "BdF ONEGATE portal"],
+        ["Format", "XML templated"], ["Frequency", "Monthly"],
+        ["Deadline", "20th of following month"], ["Threshold", "EUR 30M annual cross-border flows"],
+        ["Effective from", "2025-01-01"], ["Review by", "2026-12-15"],
+      ],
+      triggerProse: "Entities whose cross-border flows exceed EUR 30 million annually are direct declarants and file monthly ECO declarations of transactions with non-residents.",
+      triggerRule: 'annual_xborder_flows_eur > 30e6\n→ direct declarant status\n→ monthly ECO declaration',
+      contract: [
+        ["dict:flows.by-country", "pacs.008 aggregates", "#l141-6"],
+        ["dict:purpose.code", "BdF economic codes", "#annex-eco"],
+      ],
+      clause: {
+        anchor: "src/fr/cmf-l141-6.fr.pdf#l141-6",
+        origLang: "Français (original — evidence)",
+        orig: "« La Banque de France établit la balance des paiements … Les résidents sont tenus de lui déclarer leurs opérations avec les non-résidents dans les conditions qu'elle définit … »",
+        en: "“The Banque de France compiles the balance of payments … Residents are required to declare to it their transactions with non-residents under the conditions it defines …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2024-12-02 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Declarant status is entity-level, not transaction-level — the rule twin gates on the rolling annual flow total, recomputed monthly.", by: "sme.fr-reporting · 2024-12-05" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.3", when: "2024-11-26 · governance event 19dd…4c8", agent: true },
+        { role: "Checker", who: "sme.fr-reporting", when: "2024-12-05 · approved" },
+        { role: "Four-eyes", who: "regops.lead-emea", when: "2024-12-09 · co-signed" },
+      ],
+      versions: [["1.0.0", "effective since 2025-01-01 — this page", "effective"]],
+    },
+    "gb-boe": {
+      full: true, region: "EMEA", country: "United Kingdom",
+      id: "gr3:gb.boe.form-bt", version: "1.4.0", status: "effective",
+      title: "Bank of England Form BT — Balance Sheet & Transactions Return",
+      langs: "EN",
+      facts: [
+        ["Regulator", "Bank of England"], ["Legal basis", "Bank of England Act 1998 s.17"],
+        ["Report code", "Form BT (payments subset)"], ["Channel", "BEEDS portal"],
+        ["Format", "Templated statistical return"], ["Frequency", "Monthly / quarterly by schedule"],
+        ["Deadline", "Per BoE reporting calendar"], ["Who must report", "UK banks & branches"],
+        ["Effective from", "2024-09-01"], ["Review by", "2026-10-30"],
+      ],
+      triggerProse: "Reporting institutions file scheduled statistical returns; payments-relevant schedules cover cross-border positions and flows by counterparty country and currency.",
+      triggerRule: 'entity.license == "bank_uk"\n→ scheduled returns per calendar\n(schedule scope from template map)',
+      contract: [
+        ["dict:balance.by-country", "camt.053 aggregates", "#s-17"],
+        ["dict:flows.by-currency", "pacs.008 aggregates", "#sch-bt"],
+      ],
+      clause: {
+        anchor: "src/gb/boe-act-1998.en.pdf#s-17",
+        origLang: "English (original — evidence)",
+        orig: "“The Bank may by notice in writing require an institution … to provide the Bank with such information as may be specified in the notice …”",
+        en: "(source is English — no translation layer)",
+        prov: "anchors verified 2024-08-10", dir: "ltr",
+      },
+      notes: [
+        { text: "Schedule scope is maintained as a template-map page — schedule changes version this record, mirroring the SG MAS 610 pattern.", by: "sme.gb-reporting · 2024-08-14" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.2", when: "2024-08-06 · governance event 7c31…0aa", agent: true },
+        { role: "Checker", who: "sme.gb-reporting", when: "2024-08-14 · approved" },
+        { role: "Four-eyes", who: "regops.lead-emea", when: "2024-08-16 · co-signed" },
+      ],
+      versions: [["1.4.0", "effective since 2024-09-01 — this page", "effective"]],
+    },
+    "za-sarb": {
+      full: true, region: "EMEA", country: "South Africa",
+      id: "gr3:za.sarb.bopcus", version: "1.0.0", status: "effective",
+      title: "SARB FinSurv BOPCUS — Cross-border Customer Transaction Reporting",
+      langs: "EN",
+      facts: [
+        ["Regulator", "South African Reserve Bank (FinSurv)"], ["Legal basis", "Exchange Control Regulations 1961"],
+        ["Report code", "BOPCUS"], ["Channel", "FinSurv Reporting System"],
+        ["Format", "Structured electronic"], ["Frequency", "Per event"],
+        ["Deadline", "T+2 business days"], ["Who must report", "Authorised Dealers"],
+        ["Effective from", "2024-11-01"], ["Review by", "2026-11-20"],
+      ],
+      triggerProse: "Authorised Dealers report every cross-border customer payment, inward and outward, with a balance-of-payments category code, within two business days.",
+      triggerRule: 'is_cross_border(txn)\nand entity.license == "ad_za"\nand bop_category in SARB_CODES',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#reg-3"],
+        ["dict:purpose.code", "SARB BoP category codes", "#annex-b"],
+      ],
+      clause: {
+        anchor: "src/za/excon-regs-1961.en.pdf#reg-3",
+        origLang: "English (original — evidence)",
+        orig: "“Every Authorised Dealer shall furnish to the Treasury such returns … of transactions in foreign exchange entered into by it as the Treasury may require.”",
+        en: "(source is English — no translation layer)",
+        prov: "anchors verified 2024-10-08", dir: "ltr",
+      },
+      notes: [
+        { text: "Category-code list changes several times a year — the code list is a linked dictionary page so amendments impact-trace through the graph.", by: "sme.za-finsurv · 2024-10-10" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.2", when: "2024-10-03 · governance event e514…27b", agent: true },
+        { role: "Checker", who: "sme.za-finsurv", when: "2024-10-10 · approved" },
+        { role: "Four-eyes", who: "regops.lead-emea", when: "2024-10-14 · co-signed" },
+      ],
+      versions: [["1.0.0", "effective since 2024-11-01 — this page", "effective"]],
+    },
+    "ch-snb": {
+      full: true, region: "EMEA", country: "Switzerland",
+      id: "gr3:ch.snb.bop", version: "1.1.0", status: "effective",
+      title: "SNB Balance-of-Payments Surveys — Zahlungsbilanzmeldungen",
+      langs: "DE → EN",
+      facts: [
+        ["Regulator", "Swiss National Bank"], ["Legal basis", "National Bank Act Art. 14"],
+        ["Report code", "BoP survey set"], ["Channel", "SNB eSurvey"],
+        ["Format", "Templated electronic"], ["Frequency", "Quarterly"],
+        ["Deadline", "30 days after quarter end"], ["Who must report", "Banks & designated entities"],
+        ["Effective from", "2025-01-01"], ["Review by", "2027-01-10"],
+      ],
+      triggerProse: "In-scope institutions complete quarterly SNB surveys on cross-border positions and flows; survey scope is set by SNB designation.",
+      triggerRule: 'entity in SNB_DESIGNATED\n→ quarterly survey due\n(scope from designation letter)',
+      contract: [
+        ["dict:balance.by-country", "camt.053 aggregates", "#art-14"],
+        ["dict:flows.by-currency", "pacs.008 aggregates", "#survey-q"],
+      ],
+      clause: {
+        anchor: "src/ch/nba.de.pdf#art-14",
+        origLang: "Deutsch (original — evidence)",
+        orig: "„Die Nationalbank ist befugt, von natürlichen und juristischen Personen statistische Daten über deren Tätigkeit zu erheben …“",
+        en: "“The National Bank is authorised to collect statistical data on their activities from natural and legal persons …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2024-12-12 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Official text exists in DE/FR/IT — this record anchors the German text and cross-links the French; all three are authentic.", by: "sme.ch-reporting · 2024-12-15" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.3", when: "2024-12-08 · governance event 90af…6e1", agent: true },
+        { role: "Checker", who: "sme.ch-reporting", when: "2024-12-15 · approved" },
+        { role: "Four-eyes", who: "regops.lead-emea", when: "2024-12-18 · co-signed" },
+      ],
+      versions: [["1.1.0", "effective since 2025-01-01 — this page", "effective"]],
+    },
+    "hk-hkma": {
+      full: true, region: "APAC", country: "Hong Kong SAR",
+      id: "gr3:hk.hkma.ret", version: "2.0.0", status: "effective",
+      title: "HKMA Returns — Cross-border Positions & Flows",
+      langs: "EN / 中文",
+      facts: [
+        ["Regulator", "Hong Kong Monetary Authority"], ["Legal basis", "Banking Ordinance §63"],
+        ["Report code", "Cross-border claims & flows return"], ["Channel", "HKMA STET portal"],
+        ["Format", "Templated electronic return"], ["Frequency", "Monthly"],
+        ["Deadline", "14 days after month end"], ["Who must report", "Authorized institutions"],
+        ["Effective from", "2025-02-01"], ["Review by", "2026-12-01"],
+      ],
+      triggerProse: "Authorized institutions submit monthly returns covering cross-border claims, liabilities, and payment flows by counterparty country and currency.",
+      triggerRule: 'entity.license == "ai_hk"\n→ monthly return due per calendar\n(cross-border positions + flows)',
+      contract: [
+        ["dict:balance.by-country", "camt.053 aggregates", "#s-63"],
+        ["dict:flows.by-currency", "pacs.008 aggregates", "#ret-annex"],
+      ],
+      clause: {
+        anchor: "src/hk/banking-ordinance.en.pdf#s-63",
+        origLang: "English (original — evidence)",
+        orig: "“Every authorized institution shall submit to the Monetary Authority such returns … in such form and at such intervals as the Monetary Authority may specify.”",
+        en: "「認可機構須按金融管理專員指明的格式及相隔期間，向金融管理專員呈交報表 …」",
+        enLang: "中文 (equally authentic text)",
+        prov: "bilingual jurisdiction — both texts authentic · alignment verified 2025-01-20",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Both language versions are legally authentic — this record anchors the English text and cross-links the Chinese; discrepancies escalate to legal review, not translation review.", by: "sme.hk-reporting · 2025-01-22" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.3", when: "2025-01-15 · governance event 3fa1…b02", agent: true },
+        { role: "Checker", who: "sme.hk-reporting", when: "2025-01-22 · approved" },
+        { role: "Four-eyes", who: "regops.lead-apac", when: "2025-01-24 · co-signed" },
+      ],
+      versions: [["2.0.0", "effective since 2025-02-01 — this page", "effective"]],
+    },
+    "kr-bok": {
+      full: true, region: "APAC", country: "Korea",
+      id: "gr3:kr.bok.fx-report", version: "1.0.0", status: "effective",
+      title: "BOK FX Transaction Reporting — 외국환거래 보고",
+      langs: "KO → EN",
+      facts: [
+        ["Regulator", "Bank of Korea (for MOEF)"], ["Legal basis", "FX Transactions Act Art. 17"],
+        ["Report code", "FX network reporting"], ["Channel", "BOK FX Information Network"],
+        ["Format", "Structured electronic"], ["Frequency", "Per transaction + monthly"],
+        ["Threshold", "USD 50,000 equivalent"], ["Who must report", "FX business institutions"],
+        ["Effective from", "2025-03-01"], ["Review by", "2026-11-30"],
+      ],
+      triggerProse: "Foreign-exchange business institutions report cross-border payments and receipts above USD 50,000 equivalent through the FX Information Network; monthly aggregates cover the remainder.",
+      triggerRule: 'amount_usd_eq > 50000\nand is_cross_border(txn)\nand entity.license == "fx_biz_kr"',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#art-17"],
+        ["dict:purpose.code", "BOK purpose classification", "#annex-3"],
+      ],
+      clause: {
+        anchor: "src/kr/fx-transactions-act.ko.pdf#art-17",
+        origLang: "한국어 (original — evidence)",
+        orig: "“외국환업무취급기관은 외국환거래의 내용을 대통령령으로 정하는 바에 따라 기획재정부장관에게 보고하여야 한다 …”",
+        en: "“Foreign exchange business institutions must report the content of foreign exchange transactions to the Minister of Economy and Finance as prescribed by Presidential Decree …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2025-02-18 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Reporting routes through the bank when the payment passes a licensed FX institution — our obligation for in-scope flows, mirroring the JP record's pattern.", by: "sme.kr-fx · 2025-02-20" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.4", when: "2025-02-12 · governance event 88c0…1de", agent: true },
+        { role: "Checker", who: "sme.kr-fx", when: "2025-02-20 · approved" },
+        { role: "Four-eyes", who: "regops.lead-apac", when: "2025-02-23 · co-signed" },
+      ],
+      versions: [["1.0.0", "effective since 2025-03-01 — this page", "effective"]],
+    },
+    "cn-safe": {
+      full: true, region: "APAC", country: "China",
+      id: "gr3:cn.safe.bop", version: "0.9.0", status: "review",
+      title: "SAFE BOP Declaration — 国际收支统计申报",
+      langs: "ZH → EN",
+      facts: [
+        ["Regulator", "State Administration of Foreign Exchange"], ["Legal basis", "BOP Statistical Declaration Measures"],
+        ["Report code", "BOP declaration"], ["Channel", "SAFE platform, via banks"],
+        ["Format", "Structured electronic"], ["Frequency", "Per transaction · T+1 bank submission"],
+        ["Status", "v0.9.0 in checker review"],
+      ],
+      triggerProse: "All cross-border receipts and payments between residents and non-residents are declared for balance-of-payments statistics; banks submit declarations T+1.",
+      triggerRule: 'is_cross_border(txn)\nand leg.country == "CN"\n→ declaration due T+1',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#art-2"],
+        ["dict:purpose.code", "SAFE transaction codes", "#annex-1"],
+      ],
+      clause: {
+        anchor: "src/cn/safe-bop-measures.zh.pdf#art-2",
+        origLang: "中文 (original — evidence)",
+        orig: "“中国居民与非居民之间发生的一切经济交易，均须进行国际收支统计申报 …”",
+        en: "“All economic transactions occurring between Chinese residents and non-residents must be declared for balance-of-payments statistics …”",
+        prov: "translation: jaro.translator@2.3 · human review pending — draft in workbench",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "SAFE transaction-code granularity vs internal purpose codes is a low-confidence mapping — blocked on SME confirmation before the first effective version.", by: "jaro.mapper@1.9 · 2026-08-18" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.4", when: "2026-08-15 · governance event a71e…903", agent: true },
+        { role: "Checker", who: "sme.cn-reporting — pending", when: "—" },
+      ],
+      versions: [["0.9.0", "draft — in checker review", "review"]],
+    },
+    "in-feters": {
+      full: true, region: "APAC", country: "India",
+      id: "gr3:in.rbi.feters", version: "1.2.0", status: "effective",
+      title: "RBI FETERS — Foreign Exchange Transactions Reporting (R-Returns)",
+      langs: "EN",
+      facts: [
+        ["Regulator", "Reserve Bank of India"], ["Legal basis", "FEMA 1999 §11 · FETERS Master Direction"],
+        ["Report code", "R-Return (FETERS)"], ["Channel", "RBI CIMS portal"],
+        ["Format", "FETERS XML batch"], ["Frequency", "Fortnightly"],
+        ["Deadline", "7 calendar days from fortnight close"], ["Who must report", "AD Category-I banks"],
+        ["Effective from", "2025-04-01"], ["Review by", "2026-10-15"],
+      ],
+      triggerProse: "Authorised Dealer banks report all cross-border foreign-exchange transactions, purpose-coded per the FETERS code list, in fortnightly R-Returns.",
+      triggerRule: 'is_cross_border(txn)\nand entity.license == "ad_cat1"\nand purpose_code in FETERS_CODES',
+      contract: [
+        ["dict:purpose.code", "RBI FETERS purpose codes", "#annex-2"],
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#para-3"],
+        ["dict:currency.pair", "FX deal capture", "#para-5"],
+      ],
+      clause: {
+        anchor: "src/in/rbi-feters-md.en.pdf#para-3",
+        origLang: "English (original — evidence)",
+        orig: "“Every Authorised Dealer shall furnish to the Reserve Bank returns of all foreign exchange transactions undertaken by it, in such form and at such intervals as the Reserve Bank may direct …”",
+        en: "(source is English — no translation layer)",
+        prov: "anchors verified 2025-03-20", dir: "ltr",
+      },
+      notes: [
+        { text: "Purpose-code mapping to internal payment categories lives on the dict:purpose.code page — FETERS codes version with this record, not with the dictionary.", by: "sme.in-fx · 2025-03-24" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.3", when: "2025-03-14 · governance event c8d2…44a", agent: true },
+        { role: "Checker", who: "sme.in-fx", when: "2025-03-24 · approved" },
+        { role: "Four-eyes", who: "regops.lead-apac", when: "2025-03-27 · co-signed" },
+      ],
+      versions: [["1.2.0", "effective since 2025-04-01 — this page", "effective"]],
+    },
+    "au-ifti": {
+      full: true, region: "APAC", country: "Australia",
+      id: "gr3:au.austrac.ifti", version: "3.0.1", status: "effective",
+      title: "AUSTRAC IFTI — International Funds Transfer Instruction Reports",
+      langs: "EN",
+      facts: [
+        ["Regulator", "AUSTRAC"], ["Legal basis", "AML/CTF Act 2006 s.45"],
+        ["Report code", "IFTI-E"], ["Channel", "AUSTRAC Online"],
+        ["Format", "XML / portal"], ["Frequency", "Per event"],
+        ["Deadline", "10 business days from instruction"], ["Threshold", "None — every IFTI"],
+        ["Effective from", "2024-07-01"], ["Review by", "2026-09-15"],
+      ],
+      triggerProse: "Every international funds transfer instruction transmitted into or out of Australia is reportable within 10 business days — there is no de minimis threshold.",
+      triggerRule: 'txn.type == "ifti"\nand ("AU" in [origin.country,\n             destination.country])',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#s-45"],
+        ["dict:person.aggregation-key", "KYC identifiers", "#s-45"],
+      ],
+      clause: {
+        anchor: "src/au/amlctf-act-2006.en.pdf#s-45",
+        origLang: "English (original — evidence)",
+        orig: "“If a person sends or receives an international funds transfer instruction, the person must, within 10 business days … give the AUSTRAC CEO a report of the instruction …”",
+        en: "(source is English — no translation layer)",
+        prov: "anchors verified 2024-06-12", dir: "ltr",
+      },
+      notes: [
+        { text: "No threshold — volume is the operational risk. Batch validation reuses the rule twin so under-reporting is caught before lodgment, not after.", by: "sme.au-austrac · 2024-06-15" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.1", when: "2024-06-08 · governance event 62b9…f77", agent: true },
+        { role: "Checker", who: "sme.au-austrac", when: "2024-06-15 · approved" },
+        { role: "Four-eyes", who: "regops.lead-apac", when: "2024-06-18 · co-signed" },
+      ],
+      versions: [["3.0.1", "effective since 2024-07-01 — this page", "effective"]],
+    },
+    "au-apra": { full: false, region: "APAC", country: "Australia", id: "gr3:au.apra.ears", version: "0.1.0", status: "draft", title: "APRA EARS (payments subset)", langs: "EN", stub: "Backfill queued." },
+    "ca-fintrac": { full: false, region: "North America", country: "Canada", id: "gr3:ca.fintrac.lctr", version: "0.2.0", status: "draft", title: "FINTRAC Large Cash Transaction Report", langs: "EN/FR", stub: "Backfill in progress." },
+    "mx-banxico": {
+      full: true, region: "Latin America", country: "Mexico",
+      id: "gr3:mx.banxico.fx", version: "1.0.0", status: "effective",
+      title: "Banxico FX & Cross-border Transfer Reporting",
+      langs: "ES → EN",
+      facts: [
+        ["Regulator", "Banco de México"], ["Legal basis", "Ley del Banco de México Art. 36"],
+        ["Report code", "FX position & transfers"], ["Channel", "Banxico reporting portal"],
+        ["Format", "Structured electronic"], ["Frequency", "Daily position + monthly detail"],
+        ["Who must report", "Credit institutions"], ["Effective from", "2025-02-01"],
+        ["Review by", "2026-12-10"],
+      ],
+      triggerProse: "Credit institutions report daily FX positions and monthly detail of cross-border transfers, by currency and counterparty country, as required by Banxico.",
+      triggerRule: 'entity.license == "bank_mx"\n→ daily fx_position report\n+ monthly transfer detail',
+      contract: [
+        ["dict:fx.position", "treasury systems", "#art-36"],
+        ["dict:flows.by-currency", "pacs.008 aggregates", "#circ-detail"],
+      ],
+      clause: {
+        anchor: "src/mx/ley-banxico.es.pdf#art-36",
+        origLang: "Español (original — evidence)",
+        orig: "«Los intermediarios financieros estarán obligados a suministrar al Banco de México la información que éste les requiera sobre sus operaciones …»",
+        en: "“Financial intermediaries shall be obliged to supply Banco de México with the information it requires from them regarding their operations …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2025-01-14 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Daily position cut-off is Mexico City close — the calendar rule carries the timezone explicitly, as on the DE record.", by: "sme.mx-reporting · 2025-01-16" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.3", when: "2025-01-09 · governance event 4b6c…d15", agent: true },
+        { role: "Checker", who: "sme.mx-reporting", when: "2025-01-16 · approved" },
+        { role: "Four-eyes", who: "regops.lead-latam", when: "2025-01-20 · co-signed" },
+      ],
+      versions: [["1.0.0", "effective since 2025-02-01 — this page", "effective"]],
+    },
+    "ar-bcra": {
+      full: true, region: "Latin America", country: "Argentina",
+      id: "gr3:ar.bcra.cambios", version: "2.3.0", status: "effective",
+      title: "BCRA Régimen Informativo de Operaciones de Cambio",
+      langs: "ES → EN",
+      facts: [
+        ["Regulator", "Banco Central de la República Argentina"], ["Legal basis", "Régimen Informativo — Com. “A” series"],
+        ["Report code", "Operaciones de cambio"], ["Channel", "BCRA informative regime"],
+        ["Format", "Structured daily files"], ["Frequency", "Daily"],
+        ["Deadline", "T+1 business day"], ["Who must report", "Authorized FX entities"],
+        ["Effective from", "2024-08-01"], ["Review by", "2026-10-05"],
+      ],
+      triggerProse: "Authorized FX entities report every operation concluded in the exchange market — purchases, sales, and cross-border transfers — daily to the BCRA.",
+      triggerRule: 'txn.market == "cambios"\nand entity.license == "fx_ar"\n→ report T+1',
+      contract: [
+        ["dict:fx.pair", "FX deal capture", "#com-a"],
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#com-a"],
+        ["dict:purpose.code", "BCRA concept codes", "#annex-conceptos"],
+      ],
+      clause: {
+        anchor: "src/ar/bcra-cambios.es.pdf#com-a",
+        origLang: "Español (original — evidence)",
+        orig: "«Las entidades autorizadas a operar en cambios deberán informar al Banco Central todas las operaciones concertadas en el mercado de cambios …»",
+        en: "“Entities authorized to operate in foreign exchange must report to the Central Bank all transactions concluded in the exchange market …”",
+        prov: "translation: jaro.translator@2.3 · human-reviewed 2024-07-18 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Concept-code list amendments are frequent — treated like SARB category codes: linked dictionary page, graph-traceable impact.", by: "sme.ar-cambios · 2024-07-20" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.2", when: "2024-07-14 · governance event bd08…39c", agent: true },
+        { role: "Checker", who: "sme.ar-cambios", when: "2024-07-20 · approved" },
+        { role: "Four-eyes", who: "regops.lead-latam", when: "2024-07-23 · co-signed" },
+      ],
+      versions: [["2.3.0", "effective since 2024-08-01 — this page", "effective"]],
+    },
+    "co-banrep": {
+      full: true, region: "Latin America", country: "Colombia",
+      id: "gr3:co.banrep.cambio", version: "1.2.0", status: "effective",
+      title: "Banco de la República — Declaración de Cambio",
+      langs: "ES → EN",
+      facts: [
+        ["Regulator", "Banco de la República"], ["Legal basis", "Resolución Externa 1/2018 · DCIN-83"],
+        ["Report code", "Declaración de cambio"], ["Channel", "Via IMC (FX market intermediaries)"],
+        ["Format", "Structured electronic forms"], ["Frequency", "Per event"],
+        ["Who must report", "Residents, via IMCs"], ["Effective from", "2024-06-01"],
+        ["Review by", "2026-09-25"],
+      ],
+      triggerProse: "Residents present an FX declaration, through the FX market intermediary channeling the payment, for each in-scope exchange operation — imports, exports, debt, and investment flows.",
+      triggerRule: 'txn.category in DECLARABLE\nand channeled_via == "imc"\n→ declaración per event',
+      contract: [
+        ["dict:payment.amount", "pacs.008 …/IntrBkSttlmAmt", "#re1-cap3"],
+        ["dict:purpose.code", "Numerales cambiarios", "#dcin-annex"],
+      ],
+      clause: {
+        anchor: "src/co/re1-2018.es.pdf#re1-cap3",
+        origLang: "Español (original — evidence)",
+        orig: "«Los residentes deberán presentar la declaración de cambio por las operaciones de cambio que canalicen por conducto de los intermediarios del mercado cambiario …»",
+        en: "“Residents must present the exchange declaration for the exchange operations they channel through the foreign-exchange market intermediaries …”",
+        prov: "translation: jaro.translator@2.2 · human-reviewed 2024-05-12 · segment-aligned",
+        dir: "ltr",
+      },
+      notes: [
+        { text: "Numeral (purpose) codes drive downstream reporting — mapped once in the dictionary, reused wherever they appear.", by: "sme.co-cambios · 2024-05-14" },
+      ],
+      chain: [
+        { role: "Maker", who: "jaro.extractor@2.2", when: "2024-05-08 · governance event 51e9…c72", agent: true },
+        { role: "Checker", who: "sme.co-cambios", when: "2024-05-14 · approved" },
+        { role: "Four-eyes", who: "regops.lead-latam", when: "2024-05-16 · co-signed" },
+      ],
+      versions: [["1.2.0", "effective since 2024-06-01 — this page", "effective"]],
+    },
+  },
+};
+
+// Workbench queue — mutable state
+const QUEUE = [
+  {
+    id: "q1", kind: "GR3 draft", title: "Germany Z4 — v4.3.0",
+    gr3: "gr3:de.bbk.awv-z4@4.3.0", maker: "jaro.extractor@2.4",
+    summary: "Bundesbank circular 2026/07: IBAN-less instant payments explicitly in Z4 scope.",
+    status: "review",
+    ci: "CI: schema ✓ · anchors ✓ · prose/rule sync ✓ · 214 fixture txns pass",
+    diff: [
+      ["ctx", "  trigger:"],
+      ["ctx", "    prose: >"],
+      ["del", "-     Incoming or outgoing cross-border payments above EUR 12,500 …"],
+      ["add", "+     Incoming or outgoing cross-border payments above EUR 12,500 …,"],
+      ["add", "+     including IBAN-less instant payments (circular 2026/07 §3)."],
+      ["ctx", "    rule: |"],
+      ["add", "+     # scheme-agnostic: instant payment rails included"],
+    ],
+    comments: [
+      { who: "jaro.consistency-qa", cls: "agent", when: "2026-08-12", text: "Cross-check: no conflict with fr-eco or gb-boe corridor definitions. One open question flagged for SME: do on-us IBAN-less transfers count as cross-border when the counterparty account is foreign-domiciled?" },
+    ],
+    regen: ["Reg report (Z4 dry run)", "RFI response", "Audit pack", "Ad hoc extract"],
+  },
+  {
+    id: "q2", kind: "Output draft", title: "RFI response — BaFin, Q2 intercompany exclusions",
+    gr3: "cites gr3:de.bbk.awv-z4@4.2.0 · 6 clause anchors", maker: "jaro.rfi-copilot@1.7",
+    summary: "Draft response explaining Q2 exclusion of netted intercompany flows, with citations to AWV §67 and interpretation note 2024-11.",
+    status: "review",
+    ci: "Grounding guardrail: every claim anchored ✓ · PII screen ✓",
+    diff: null,
+    excerpt: "“…flows excluded under the goods-settlement exemption are identified per gr3:de.bbk.awv-z4@4.2.0 §trigger, per the interpretation approved 2024-11-15 (sme.de-payments)…”",
+    comments: [],
+    regen: ["RFI response", "Audit pack"],
+  },
+  {
+    id: "q3", kind: "GR3 draft", title: "UAE BRF — v1.1.0 (translation + mapping review)",
+    gr3: "gr3:ae.cbuae.brf@1.1.0", maker: "jaro.mapper@1.9",
+    summary: "Arabic source translated and mapped; corridor granularity mapping is low-confidence and blocks on SME input.",
+    status: "changes",
+    ci: "CI: schema ✓ · anchors ✓ · mapping confidence 0.62 — below 0.80 gate",
+    diff: [
+      ["ctx", "  data_contract:"],
+      ["add", "+   - element: dict:flows.by-corridor    # confidence 0.62"],
+      ["add", "+     open_question: emirate-level or country-level?"],
+    ],
+    comments: [
+      { who: "jaro.mapper", cls: "agent", when: "2026-08-12", text: "Schedule 7 column headers are ambiguous between emirate-level and country-level corridors. Defaulted to country-level; flagging for SME confirmation." },
+      { who: "sme.ae-reporting (checker)", cls: "human", when: "2026-08-14", text: "Country-level is wrong for Schedule 7 — the 2025 template splits GCC corridors by emirate. Please regenerate the mapping with emirate-level granularity for GCC, country-level elsewhere." },
+    ],
+    regen: ["Reg report (BRF dry run)", "Ad hoc extract"],
+  },
+];
+
+const OUTPUTS = [
+  { title: "Z4 filing — 2026-07 cycle", meta: "generated from gr3:de.bbk.awv-z4@4.2.0 · filed 2026-08-07 · ack received", pill: "effective", label: "Filed + ack" },
+  { title: "Audit pack — internal audit, Z4 FY2025", meta: "assembled 2026-06-02 · 14 citations · approval chain included", pill: "effective", label: "Delivered" },
+  { title: "Ad hoc extract — cross-border > local thresholds, Q2", meta: "extract spec from 9 GR3 versions · lineage stamped", pill: "effective", label: "Delivered" },
+];
+
+// ------------------------------------------------------------------
+// Rendering
+// ------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+let state = { view: "home", doc: null };
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+function pillFor(status) {
+  const map = { effective: ["effective", "Effective"], review: ["review", "In review"], draft: ["draft", "Draft"], changes: ["changes", "Changes requested"], approved: ["approved", "Approved — four-eyes pending"] };
+  const [cls, label] = map[status] || map.draft;
+  return `<span class="pill ${cls}">${label}</span>`;
+}
+
+function renderTree() {
+  $("tree").innerHTML = DATA.regions.map((r, ri) => `
+    <details class="region"${ri === 0 ? " open" : ""}>
+      <summary>${r.name}<span class="region-count">${r.countries.reduce((n, c) => n + c.docs.length, 0)}</span></summary>
+      ${r.countries.map(c => `
+        <div class="country">
+          <div class="country-head">${c.name}</div>
+          ${c.docs.map(d => {
+            const doc = DATA.docs[d];
+            return `<button class="doc-link${state.doc === d ? " active" : ""}" onclick="go('doc','${d}')">
+              <span class="dot ${doc.status}"></span>${doc.id.replace("gr3:", "")}</button>`;
+          }).join("")}
+        </div>`).join("")}
+    </details>`).join("");
+}
+
+function go(view, param) {
+  state.view = view; state.doc = view === "doc" ? param : null;
+  try { history.replaceState(null, "", view === "home" ? "#" : view === "doc" ? "#doc/" + param : "#workbench"); } catch (e) {}
+  $("nav-wiki").classList.toggle("active", view !== "workbench");
+  $("nav-wb").classList.toggle("active", view === "workbench");
+  renderTree();
+  if (view === "home") renderHome();
+  else if (view === "doc") renderDoc(param);
+  else renderWorkbench();
+  window.scrollTo({ top: 0 });
+}
+
+function renderHome() {
+  const all = Object.values(DATA.docs);
+  const eff = all.filter(d => d.status === "effective").length;
+  const rev = all.filter(d => d.status === "review").length;
+  $("main").innerHTML = `
+    <div class="home">
+      <h1>One portable format. Every jurisdiction. Two kinds of reader.</h1>
+      <p class="lede">Every regulatory requirement is one page — a <b>Global Regulatory Requirement Record (GR3)</b> — written once, read by humans as a governed document and by JARO agents as structured data. Agents are the <b>makers</b>; Reg Ops checkers <b>approve everything</b> before it becomes effective. Pick a jurisdiction on the left, or open the checker workbench.</p>
+      <div class="stats">
+        <div class="stat"><div class="n">${DATA.regions.length}</div><div class="l">regions</div></div>
+        <div class="stat"><div class="n">${DATA.regions.reduce((n, r) => n + r.countries.length, 0)}</div><div class="l">jurisdictions</div></div>
+        <div class="stat"><div class="n">${all.length}</div><div class="l">records</div></div>
+        <div class="stat"><div class="n">${eff}</div><div class="l">effective</div></div>
+        <div class="stat"><div class="n">${rev + QUEUE.filter(q => q.status !== "approved").length}</div><div class="l">in review</div></div>
+      </div>
+      <div class="how">
+        <div class="panel"><span class="step">1 · Maker (JARO AI Agents)</span><p>JARO agents scan regulators, extract requirements from the original language, translate, map data elements, and encode rules — every draft cites its source clause.</p></div>
+        <div class="panel"><span class="step">2 · Checker (Reg Ops)</span><p>Country SMEs review drafts in the workbench: read the diff and the anchored clauses, then approve — or leave feedback and send it back.</p></div>
+        <div class="panel"><span class="step">3 · Regenerate on feedback</span><p>Comments become instructions: ask JARO to regenerate reg reports, RFI responses, audit packs, or ad hoc extracts with the feedback applied.</p></div>
+        <div class="panel"><span class="step">4 · Serve from the RKB</span><p>Approved records compile into the Regulatory Knowledge Base — everything downstream cites <span class="chip">gr3@version#clause</span>.</p></div>
+      </div>
+      <p class="footer-note">JARO llm-wiki · concept prototype · all regulatory content is illustrative and abbreviated — not legal guidance</p>
+    </div>`;
+}
+
+function renderDoc(key) {
+  const d = DATA.docs[key];
+  if (!d.full) {
+    $("main").innerHTML = `
+      <div class="crumb">${d.region} / <b>${d.country}</b></div>
+      <div class="doc-head">
+        <h1>${d.title}</h1>
+        <div class="idrow"><span class="gr3-id">${d.id}@${d.version}</span>${pillFor(d.status)}<span class="chip">${d.langs}</span></div>
+      </div>
+      <div class="stub-note"><b>Condensed record.</b> ${d.stub} In the full system every record renders like the flagship pages — try <a href="#" onclick="go('doc','de-z4');return false;">Germany Z4</a>, <a href="#" onclick="go('doc','jp-bop');return false;">Japan BOP</a>, or <a href="#" onclick="go('doc','ae-brf');return false;">UAE BRF</a>.</div>`;
+    return;
+  }
+  const human = `
+    <div class="panel"><h2>Obligation — facts (frontmatter plane)</h2>
+      <dl class="facts">${d.facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+    </div>
+    <div class="panel"><h2>Trigger — two planes, kept in sync</h2>
+      <div class="planes">
+        <div class="plane"><h3>Prose (for humans &amp; RFIs)</h3><p>${d.triggerProse}</p></div>
+        <div class="plane"><h3>Rule twin (for generation &amp; validation)</h3><pre>${esc(d.triggerRule)}</pre></div>
+      </div>
+      <div class="sync-note">✓ CI prose/rule consistency check passed</div>
+    </div>
+    <div class="panel"><h2>Data contract</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Element</th><th>Maps to</th><th>Source anchor</th></tr></thead>
+        <tbody>${d.contract.map(([e, m, a]) => `<tr><td class="k"><span class="chip">${e}</span></td><td>${m}</td><td><span class="chip anchor">${a}</span></td></tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+    <div class="panel"><h2>Source clause — original is evidence, translation is interpretation</h2>
+      <div class="clauses">
+        <div class="clause src" ${d.clause.dir === "rtl" ? 'dir="rtl"' : ""}><div class="lang-tag" dir="ltr">${d.clause.origLang}</div><p lang="">${d.clause.orig}</p></div>
+        <div class="clause"><div class="lang-tag">${d.clause.enLang || "English (aligned translation)"}</div><p>${d.clause.en}</p></div>
+      </div>
+      <div class="prov">anchor: <span class="chip anchor">${d.clause.anchor}</span> · ${d.clause.prov}</div>
+    </div>
+    <div class="panel"><h2>Interpretation notes</h2>
+      ${d.notes.map(n => `<div class="note"><p>${n.text}</p><div class="byline">${n.by}</div></div>`).join("")}
+    </div>
+    <div class="panel"><h2>Approval chain — maker / checker / four-eyes</h2>
+      <div class="chain">${d.chain.map(s => `<div class="chain-step${s.agent ? " agent" : ""}"><div class="role">${s.role}</div><div class="who">${s.who}</div><div class="when">${s.when}</div></div>`).join("")}</div>
+    </div>
+    <div class="panel"><h2>Versions — both clocks preserved</h2>
+      ${d.versions.map(([v, txt, st]) => `<div class="verrow"><span class="v">${v}</span>${pillFor(st)}<span style="color:var(--ink-soft)">${txt}</span></div>`).join("")}
+    </div>`;
+
+  const agent = `
+    <div class="panel"><h2>The same page, as agents read it — raw portable format</h2>
+      <pre>---
+gr3: ${d.id}@${d.version}
+type: gr3.record
+jurisdiction: ${d.country}
+status: ${d.status === "effective" ? "effective" : "in_review"}
+obligation:
+  trigger:
+    prose: >
+      ${d.triggerProse}
+    rule: |
+${d.triggerRule.split("\n").map(l => "      " + esc(l)).join("\n")}
+data_contract:
+${d.contract.map(([e]) => `  - element: ${e}`).join("\n")}
+legal_basis:
+  - source: ${d.clause.anchor}
+---
+## Interpretation notes
+${d.notes[0].text}</pre>
+    </div>
+    <div class="panel"><h2>How JARO agents consume it</h2>
+      <div class="planes">
+        <div class="plane"><h3>Governed fetch (structured facts)</h3>
+          <pre>rec = jaro.pull_gr3(
+  "${d.id}",
+  as_of_effective="2026-08-01")
+# → parsed frontmatter; only
+#   approved+effective is served</pre></div>
+        <div class="plane"><h3>Evaluate the rule twin</h3>
+          <pre>verdict = jaro.evaluate_trigger(
+  rec, txn)   # in scope? why?
+# every call emits a signed
+# governance event (JARO runtime)</pre></div>
+        <div class="plane"><h3>Cited retrieval from the RKB</h3>
+          <pre>ans = rkb.query(
+  "threshold for ${d.country}?",
+  cite=True)
+# → text + [{gr3, version,
+#     anchor, quote, lang}]</pre></div>
+        <div class="plane"><h3>Guardrails on the way out</h3>
+          <pre># drafts pass grounding +
+# PII guardrails; unanchored
+# claims are rejected before
+# any human ever sees them</pre></div>
+      </div>
+    </div>`;
+
+  $("main").innerHTML = `
+    <div class="crumb">${d.region} / <b>${d.country}</b> / ${d.id}</div>
+    <div class="doc-head">
+      <h1>${d.title}</h1>
+      <div class="idrow">
+        <span class="gr3-id">${d.id}@${d.version}</span>${pillFor(d.status)}<span class="chip">${d.langs}</span>
+        <div class="view-toggle" role="tablist">
+          <button id="vt-h" class="on" onclick="setView('h')">Human view</button>
+          <button id="vt-a" onclick="setView('a')">Agent view</button>
+        </div>
+      </div>
+    </div>
+    <div id="dv-h">${human}</div>
+    <div id="dv-a" style="display:none">${agent}</div>`;
+}
+
+function setView(which) {
+  $("dv-h").style.display = which === "h" ? "" : "none";
+  $("dv-a").style.display = which === "a" ? "" : "none";
+  $("vt-h").classList.toggle("on", which === "h");
+  $("vt-a").classList.toggle("on", which === "a");
+}
+
+// ------------------------------------------------------------------
+// Workbench
+// ------------------------------------------------------------------
+function renderWorkbench() {
+  $("main").innerHTML = `
+    <div class="wb-head">
+      <h1>Checker workbench</h1>
+      <p>Everything here was <b>made by JARO agents</b> and is waiting on a human. Approve it, or leave feedback and ask JARO to regenerate — reg reports, RFI responses, audit packs, or ad hoc extracts.</p>
+    </div>
+    <div id="queue">${QUEUE.map(qcardHTML).join("")}</div>
+    <div class="wb-head" style="margin-top:34px"><h1 style="font-size:1.2rem">Recent JARO outputs</h1>
+      <p>Approved and delivered — kept here because any of them can be regenerated when facts or feedback change.</p></div>
+    ${OUTPUTS.map(o => `
+      <div class="qcard"><div class="qcard-head" style="cursor:default">
+        <span class="qt">${o.title}</span><span class="pill ${o.pill}">${o.label}</span>
+        <span class="maker">${o.meta}</span>
+      </div></div>`).join("")}
+    <p class="footer-note">Maker–checker is enforced by runtime policy: JARO agents cannot approve, merge, or file. Only checker + four-eyes approval makes a record effective.</p>`;
+  updateCount();
+}
+
+function qcardHTML(q) {
+  return `
+  <div class="qcard" id="${q.id}">
+    <div class="qcard-head" onclick="toggleCard('${q.id}')">
+      <span class="qt">${q.title}</span>
+      <span class="chip">${q.kind}</span>
+      ${pillFor(q.status)}
+      <span class="maker">maker: ${q.maker}</span>
+    </div>
+    <div class="qbody">
+      <div class="qsec"><h3>What changed</h3>
+        <p style="margin:0 0 10px; font-size:0.86rem;">${q.summary}</p>
+        <div style="font-family:var(--mono); font-size:0.7rem; color:var(--accent-ink); margin-bottom:8px;">${q.gr3}</div>
+        ${q.diff ? `<div class="diff">${q.diff.map(([c, l]) => `<div class="${c}">${esc(l)}</div>`).join("")}</div>` : ""}
+        ${q.excerpt ? `<div class="note"><p>${q.excerpt}</p><div class="byline">draft excerpt — every claim carries a citation</div></div>` : ""}
+        <div class="ci-line">${q.ci}</div>
+      </div>
+      <div class="qsec"><h3>Comments &amp; feedback</h3>
+        <div id="${q.id}-comments">${q.comments.map(commentHTML).join("") || '<p style="font-size:0.8rem;color:var(--ink-faint);margin:0">No comments yet.</p>'}</div>
+      </div>
+      <div class="qsec actions">
+        <button class="btn primary" onclick="approve('${q.id}')">Approve as checker</button>
+        <button class="btn danger" onclick="toggleFeedback('${q.id}')">Request changes / comment</button>
+        <button class="btn" onclick="toggleRegen('${q.id}')">Ask JARO to regenerate…</button>
+        <span style="font-family:var(--mono); font-size:0.66rem; color:var(--ink-faint)">four-eyes co-sign required before effective</span>
+      </div>
+      <div id="${q.id}-feedback" style="display:none">
+        <label style="font-size:0.7rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);display:block;margin-bottom:4px">Your feedback (recorded on the thread, feeds regeneration)</label>
+        <textarea id="${q.id}-fb-text" placeholder="e.g. Corridor granularity should be emirate-level for GCC…"></textarea>
+        <div style="margin-top:8px"><button class="btn" onclick="submitFeedback('${q.id}')">Add comment &amp; request changes</button></div>
+      </div>
+      <div id="${q.id}-regen" style="display:none" class="regen-panel">
+        <b style="font-size:0.84rem">Regenerate with JARO</b>
+        <label for="${q.id}-regen-type">What should JARO regenerate?</label>
+        <select id="${q.id}-regen-type">${q.regen.map(r => `<option>${r}</option>`).join("")}</select>
+        <label for="${q.id}-regen-instr">Instruction to the agents (prefilled from latest feedback)</label>
+        <textarea id="${q.id}-regen-instr">${latestHumanComment(q)}</textarea>
+        <div style="margin-top:10px"><button class="btn primary" onclick="runRegen('${q.id}')">Send to JARO</button></div>
+        <div id="${q.id}-progress"></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function commentHTML(c) {
+  return `<div class="comment ${c.cls}"><div class="byline">${c.who} · ${c.when}</div><p>${c.text}</p></div>`;
+}
+
+function latestHumanComment(q) {
+  const h = [...q.comments].reverse().find(c => c.cls === "human");
+  return h ? h.text : "";
+}
+
+function toggleCard(id) { $(id).classList.toggle("open"); }
+function toggleFeedback(id) { const el = $(id + "-feedback"); el.style.display = el.style.display === "none" ? "" : "none"; }
+function toggleRegen(id) { const el = $(id + "-regen"); el.style.display = el.style.display === "none" ? "" : "none"; }
+
+function updateCount() {
+  $("wb-count").textContent = QUEUE.filter(q => q.status === "review" || q.status === "changes").length;
+}
+
+function approve(id) {
+  const q = QUEUE.find(x => x.id === id);
+  q.status = "approved";
+  q.comments.push({ who: "sme.you (checker)", cls: "human", when: "just now", text: "Approved as checker. Routed to four-eyes (regops.lead) for co-sign; becomes effective on the calendar date after co-sign." });
+  rerenderCard(q);
+}
+
+function submitFeedback(id) {
+  const q = QUEUE.find(x => x.id === id);
+  const text = $(id + "-fb-text").value.trim();
+  if (!text) return;
+  q.status = "changes";
+  q.comments.push({ who: "sme.you (checker)", cls: "human", when: "just now", text });
+  rerenderCard(q, { openRegen: true });
+}
+
+function rerenderCard(q, opts = {}) {
+  const wasOpen = $(q.id).classList.contains("open");
+  $(q.id).outerHTML = qcardHTML(q);
+  if (wasOpen) $(q.id).classList.add("open");
+  if (opts.openRegen) $(q.id + "-regen").style.display = "";
+  updateCount();
+}
+
+function runRegen(id) {
+  const q = QUEUE.find(x => x.id === id);
+  const type = $(id + "-regen-type").value;
+  const instr = $(id + "-regen-instr").value.trim();
+  const prog = $(id + "-progress");
+  const steps = [
+    "policy check — agent may draft, not approve ✓",
+    "rendering jurisdiction prompt (versioned) ✓",
+    "drafting " + type.toLowerCase() + " …",
+    "guardrails: grounding + PII ✓ · governance event emitted ✓",
+  ];
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let out = [];
+  const finish = () => {
+    prog.innerHTML = `<div class="progress">${out.join("<br>")}</div>
+      <div class="newdraft">
+        <div class="nd-title">New draft ready — awaiting checker approval</div>
+        <p><b>${type}</b> regenerated by jaro fleet · cites ${q.gr3.split("·")[0].trim()}</p>
+        ${instr ? `<p>Addressed feedback: “${esc(instr)}”</p>` : ""}
+        <p style="font-family:var(--mono); font-size:0.68rem; color:var(--ink-faint)">status: draft · invisible to RKB and filings until you approve · governance event 7d1f…e33</p>
+      </div>`;
+  };
+  if (reduced) { out = steps; finish(); return; }
+  prog.innerHTML = "";
+  steps.forEach((s, i) => {
+    setTimeout(() => {
+      out.push(s);
+      prog.innerHTML = `<div class="progress">${out.join("<br>")}</div>`;
+      if (i === steps.length - 1) setTimeout(finish, 350);
+    }, 420 * (i + 1));
+  });
+}
+
+const boot = location.hash.slice(1);
+if (boot === "workbench") go("workbench");
+else if (boot.startsWith("doc/") && DATA.docs[boot.slice(4)]) go("doc", boot.slice(4));
+else { renderTree(); renderHome(); }
+</script>

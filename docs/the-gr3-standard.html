@@ -1,0 +1,451 @@
+<title>The GR3 Standard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F7F8F6; --surface: #FFFFFF; --ink: #1B2620; --ink-soft: #47564E;
+    --ink-faint: #7E8B84; --line: #D8DED8; --line-strong: #B9C2BB;
+    --accent: #1E6E58; --accent-ink: #175D4A; --accent-soft: #E4EFE9;
+    --warn: #9A6B10; --warn-soft: #F5ECD8; --alert: #A93B2E; --alert-soft: #F6E9E6;
+    --code-bg: #EFF2EE;
+    --serif: "Spectral", Georgia, "Times New Roman", serif;
+    --sans: "Public Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #121714; --surface: #1A211C; --ink: #E5ECE6; --ink-soft: #A5B2A9;
+      --ink-faint: #6E7B73; --line: #2C352F; --line-strong: #41503F;
+      --accent: #4FBF9C; --accent-ink: #5ECDA9; --accent-soft: #1D3229;
+      --warn: #D9A544; --warn-soft: #34290F; --alert: #E07862; --alert-soft: #3A241F;
+      --code-bg: #161D18;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #121714; --surface: #1A211C; --ink: #E5ECE6; --ink-soft: #A5B2A9;
+    --ink-faint: #6E7B73; --line: #2C352F; --line-strong: #41503F;
+    --accent: #4FBF9C; --accent-ink: #5ECDA9; --accent-soft: #1D3229;
+    --warn: #D9A544; --warn-soft: #34290F; --alert: #E07862; --alert-soft: #3A241F;
+    --code-bg: #161D18;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.65; margin: 0; }
+  .doc { max-width: 900px; margin: 0 auto; padding: 48px 28px 96px; }
+
+  .mast { border-bottom: 2px solid var(--ink); padding-bottom: 28px; margin-bottom: 8px; }
+  .mast-row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; color: var(--ink-soft);
+    text-transform: uppercase; margin-bottom: 28px; }
+  .mast-row .status { color: var(--accent-ink); }
+  h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(2.1rem, 5.2vw, 3.2rem);
+    line-height: 1.1; margin: 0 0 18px; letter-spacing: -0.01em; text-wrap: balance; }
+  .dek { font-family: var(--serif); font-size: 1.18rem; line-height: 1.55; color: var(--ink-soft);
+    max-width: 46em; margin: 0 0 30px; text-wrap: pretty; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px 28px;
+    border-top: 1px solid var(--line); padding-top: 18px; }
+  .meta div { font-size: 0.86rem; }
+  .meta dt { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--ink-faint); margin-bottom: 3px; }
+  .meta dd { margin: 0; color: var(--ink-soft); }
+
+  section { margin-bottom: 60px; }
+  h2 { font-family: var(--serif); font-weight: 600; font-size: 1.65rem; line-height: 1.2; margin: 0 0 6px; text-wrap: balance; }
+  h2 .sn { color: var(--accent-ink); font-weight: 500; margin-right: 10px; font-variant-numeric: tabular-nums; }
+  .h2-rule { border: none; border-top: 1px solid var(--line-strong); margin: 0 0 22px; }
+  h3 { font-family: var(--sans); font-weight: 700; font-size: 1rem; margin: 30px 0 10px; }
+  .prose p, .prose ul, .prose ol { max-width: 68ch; }
+  .prose p { margin: 0 0 16px; text-wrap: pretty; }
+  .prose ul, .prose ol { margin: 0 0 16px; padding-left: 1.3em; }
+  .prose li { margin-bottom: 8px; }
+  .prose li::marker { color: var(--accent-ink); }
+  strong { font-weight: 600; }
+  em { font-family: var(--serif); }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--code-bg); padding: 0.1em 0.35em;
+    border-radius: 3px; white-space: nowrap; }
+  pre { background: var(--code-bg); border: 1px solid var(--line); padding: 18px 20px; overflow-x: auto;
+    font-size: 0.78rem; line-height: 1.55; margin: 20px 0; }
+  pre code { background: none; padding: 0; white-space: pre; }
+
+  .tbl-wrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+  th { text-align: left; font-family: var(--mono); font-size: 0.66rem; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--ink-faint); font-weight: 500; padding: 8px 16px 8px 0;
+    border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+  td { padding: 9px 16px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-soft); }
+  td:first-child, th:first-child { padding-left: 0; }
+  td.k { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .ok { color: var(--accent-ink); font-weight: 600; }
+  .gap { color: var(--alert); font-weight: 600; }
+  .part { color: var(--warn); font-weight: 600; }
+
+  .tenet { border: 1px solid var(--line-strong); background: var(--surface); padding: 18px 22px;
+    margin: 22px 0; max-width: 68ch; }
+  .tenet p { margin: 0; }
+  .tenet .t-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent-ink); display: block; margin-bottom: 6px; }
+  .failclosed { border-left: 3px solid var(--alert); background: var(--alert-soft); padding: 14px 20px;
+    margin: 22px 0; max-width: 66ch; font-size: 0.92rem; }
+  .failclosed p { margin: 0; }
+  .failclosed .t-label { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--alert); display: block; margin-bottom: 6px; }
+
+  figure { margin: 30px 0; }
+  .fig-frame { border: 1px solid var(--line); background: var(--surface); padding: 22px 18px; overflow-x: auto; }
+  figure svg { display: block; min-width: 720px; max-width: 100%; height: auto; margin: 0 auto; }
+  figcaption { font-family: var(--serif); font-size: 0.86rem; font-style: italic; color: var(--ink-faint);
+    margin-top: 10px; max-width: 68ch; }
+  figcaption .fig-n { font-family: var(--mono); font-style: normal; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--accent-ink); margin-right: 8px; }
+  .fig { color: var(--ink); font-family: var(--sans); }
+  .fig .box { fill: var(--ground); stroke: var(--line-strong); stroke-width: 1; }
+  .fig .box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .fig .box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.2; }
+  .fig .box-gap { fill: var(--alert-soft); stroke: var(--alert); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .fig .edge { stroke: var(--ink-soft); stroke-width: 1.2; fill: none; }
+  .fig .edge-accent { stroke: var(--accent); stroke-width: 1.4; fill: none; }
+  .fig .edge-dash { stroke: var(--ink-faint); stroke-width: 1.1; fill: none; stroke-dasharray: 5 4; }
+  .fig .t { font-size: 12.5px; fill: var(--ink); }
+  .fig .t-bold { font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .fig .t-big { font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .fig .t-sub { font-size: 11px; fill: var(--ink-soft); }
+  .fig .t-edge { font-size: 10.5px; fill: var(--ink-soft); font-family: var(--mono); }
+  .fig .t-lane { font-size: 10px; fill: var(--ink-faint); font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+  .fig .t-accent { fill: var(--accent-ink); }
+  .fig .t-warn { fill: var(--warn); }
+  .fig .t-alert { fill: var(--alert); }
+  .fig .arrow { fill: var(--ink-soft); }
+  .fig .arrow-accent { fill: var(--accent); }
+
+  a { color: var(--accent-ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="doc">
+
+<header class="mast">
+  <div class="mast-row">
+    <span>White paper · Agentic Reg Ops program · WP-2026-08</span>
+    <span class="status">Status: Draft for review</span>
+  </div>
+  <h1>The GR3 Standard</h1>
+  <p class="dek">The Global Regulatory Requirement Record: one portable, open format for every payments-reporting obligation in every jurisdiction — drafted by JARO AI Agents, approved by Reg Ops, and compiled into a Regulatory Knowledge Base that produces the regulatory reports, RFI responses, audit evidence, and ad hoc extracts. Built on the LLM-Wiki pattern and Google's Open Knowledge Format, illustrated with worked examples across EMEA, APAC, and LATAM. GR3 builds on RegGPT — the Agentic Reg Ops product, supported by JARO AI Agents and the RKB.</p>
+  <dl class="meta">
+    <div><dt>Product</dt><dd>RegGPT · JARO AI Agents · RKB</dd></div>
+    <div><dt>Date</dt><dd>26 August 2026</dd></div>
+    <div><dt>Core concept</dt><dd>GR3 — one portable requirement format</dd></div>
+    <div><dt>Companions</dt><dd><a href="https://claude.ai/code/artifact/40348ebb-09eb-4cc1-a672-2ad753e98a33">System design</a> · <a href="https://claude.ai/code/artifact/503997ee-4922-4afa-9ec7-87c8bfc8605d">llm-wiki prototype</a></dd></div>
+  </dl>
+</header>
+
+<!-- ============ 1 ============ -->
+<section id="s1" class="prose">
+  <h2><span class="sn">1</span>Executive summary</h2>
+  <hr class="h2-rule">
+  <p>A global payments business files regulatory returns in every market it operates in. The data is largely solved; the <em>interpretation layer</em> — what each regulator requires, in its own language, amended continually — lives in spreadsheets, inboxes, and people's heads. Every regulatory report, RFI, audit, and extract re-derives it.</p>
+  <ul>
+    <li><strong>The proposal:</strong> capture every obligation as one <strong>Global Regulatory Requirement Record (GR3)</strong> — a single portable format that humans read as a governed document and agents parse as structured data — in an <strong>llm-wiki</strong> organized by region and country.</li>
+    <li><strong>The operating model:</strong> JARO agents are the <em>makers</em> — they scan, extract, translate, map, and encode. Reg Ops checkers <em>approve everything</em>; feedback and comments drive agent regeneration. Nothing unapproved is ever served or filed.</li>
+    <li><strong>The payoff:</strong> approved records compile into the <strong>Regulatory Knowledge Base (RKB)</strong>, which drives four consumer classes from one corpus: <em>regulatory reports, RFI responses, audit evidence packs, and ad hoc extracts</em> — every answer citing <code>gr3@version#clause</code>.</li>
+    <li><strong>The pedigree (§4):</strong> GR3 is built on two public ideas — the LLM-Wiki pattern (a persistent, agent-maintained wiki of interlinked Markdown, rather than per-query retrieval from raw documents) and Google's Open Knowledge Format (Markdown + YAML frontmatter with one mandatory <code>type</code> field). Any OKF consumer can read the corpus; what GR3 adds is a portable document that Reg Ops sees and edits while agents read and interpret it — one shared surface — plus the governance half that filings require.</li>
+    <li><strong>The integration path (§8–§10):</strong> GR3 builds on <strong>RegGPT — the Agentic Reg Ops product, supported by JARO AI Agents and the RKB</strong> — a stack that already provides roughly two-thirds of the platform surface: 46 country agents, per-jurisdiction namespaces, Markdown ingestion, full-text search, a source crawler, and a citation-aware chat UX. The genuine gaps are identity, versioned persistence for the maker-checker workflow, dynamic wiki routes, a real vector index, and a graph layer — all tractable, and sequenced in §10.</li>
+  </ul>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2" class="prose">
+  <h2><span class="sn">2</span>The problem: regulation is a translation problem twice over</h2>
+  <hr class="h2-rule">
+  <p>Each jurisdiction issues payments-reporting obligations as circulars, gazette notices, portal announcements, and schema releases — Bundesbank AWV notices in German, Bank of Japan FEFTA guidance in Japanese, CBUAE forms in Arabic, BCB resolutions in Portuguese. Two translations have to happen before a single report is filed: <em>language</em> (the regulator's words into the operating language of the team) and <em>semantics</em> (the regulator's concepts into the bank's data elements). Today both translations are done informally, repeatedly, and invisibly — which is precisely why RFIs take weeks, audits become document hunts, and every new report build starts from a PDF.</p>
+  <p>The fix is not better search over documents. It is making the interpretation itself a first-class, governed, versioned asset — written once, reviewed once, and consumed everywhere.</p>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3" class="prose">
+  <h2><span class="sn">3</span>The GR3: one record, two readers</h2>
+  <hr class="h2-rule">
+  <p>The Global Regulatory Requirement Record is a Markdown page with YAML frontmatter — one per obligation, per return, per jurisdiction. It encodes each obligation on two planes: machine-readable facts (identity, legal basis, triggers with machine-evaluable rule twins, thresholds, deadlines, the data contract mapped to ISO 20022-keyed dictionary elements) and narrative prose (interpretation notes, edge cases, SME commentary). Four disciplines make it audit-grade:</p>
+  <ul>
+    <li><strong>Originals are evidence; English is interpretation.</strong> Source text is immutable and anchored at clause level; every frontmatter fact must cite an original-language clause or CI rejects the record.</li>
+    <li><strong>Two planes, kept in sync.</strong> An automated check flags drift between the prose trigger and its rule twin.</li>
+    <li><strong>Two clocks.</strong> <code>effective_from</code> records when the obligation applies; <code>knowledge_from</code> records when the interpretation was approved. Audits ask about both.</li>
+    <li><strong>Versions supersede, never overwrite.</strong> <code>gr3:de.bbk.awv-z4@4.2.0</code> stays queryable forever, even after 4.3.0 takes effect.</li>
+  </ul>
+  <pre><code>gr3: gr3:de.bbk.awv-z4@4.2.0          # Germany · Bundesbank · Z4
+type: gr3.record                      # OKF: the one mandatory field (§4)
+legal_basis: [{ cite: AWV §67(1), source: src/de/awv-2024.de.pdf#sec-67 }]
+obligation:
+  trigger:
+    prose: &gt;  Cross-border payments above EUR 12,500 …
+    rule:  |  amount_eur &gt; 12500 and counterparty.country != "DE" …
+lifecycle: { status: effective, effective_from: 2025-01-01,
+             knowledge_from: 2024-11-18, supersedes: …@4.1.0 }</code></pre>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4" class="prose">
+  <h2><span class="sn">4</span>Built on open patterns: the LLM-Wiki and OKF</h2>
+  <hr class="h2-rule">
+  <p>GR3 is deliberately not a proprietary invention. It combines two public ideas and adds the governance layer that regulated filings demand.</p>
+  <p><strong>The LLM-Wiki pattern</strong> (<a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Karpathy</a>) holds that instead of re-deriving knowledge from raw documents on every query, an agent should maintain a persistent, compounding wiki of interlinked Markdown — three layers (immutable raw sources, the curated wiki, and a schema defining its structure) operated through three verbs: <em>ingest</em>, <em>query</em>, <em>lint</em>. The insight is that the tedious part of a knowledge base is the bookkeeping, which is exactly what agents are good at — humans keep the curation. The GR3 corpus is this pattern applied to regulation: regulator documents are the immutable source layer; the wiki is the GR3 corpus; the schema is the GR3 spec plus CI rules; JARO extraction is ingest; the CI gate and consistency-QA agent are lint; the RKB is query; and git history plus signed governance events are the log. The human role lands precisely where the pattern puts it — agents do the bookkeeping, Reg Ops does the curation.</p>
+  <p><strong>Google's Open Knowledge Format</strong> (<a href="https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing">OKF</a>) standardizes how agent-readable knowledge bases are packaged: a directory of interlinked Markdown files with YAML frontmatter, exactly one mandatory field per concept — <code>type</code> — and no proprietary account, SDK, cloud, or model dependency to read, write, or serve. GR3 adopts OKF as its interchange surface: every page declares its type (<code>gr3.record</code>, <code>gr3.source</code>, <code>gr3.element</code>, <code>gr3.note</code>), so any OKF consumer — internal tooling, a partner's agent stack, even regulator-side tooling one day — ingests the corpus without custom parsing. The RKB compiler is, formally, just a specialized OKF consumer.</p>
+  <div class="tenet"><span class="t-label">What GR3 adds on top</span><p>Two things neither pattern requires. First, GR3 is a <strong>portable working document with two live readers</strong>: Reg Ops sees and edits the same page that AI agents read and interpret — one shared surface, no export step, no divergence between the human version and the machine version. Second, the <strong>governance half</strong> — maker-checker lifecycle, four-eyes approval, clause anchoring, two clocks, fail-closed serving — that generic knowledge bases leave out but regulatory filings demand. GR3 is best understood as an OKF-conformant domain profile, run on the LLM-Wiki operating model, carrying both.</p></div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5" class="prose">
+  <h2><span class="sn">5</span>GR3 across the regions: a worked gallery</h2>
+  <hr class="h2-rule">
+  <p>The test of one format is whether it holds any regulator, any language, any cadence — a monthly German threshold report, a no-threshold Australian per-event feed, a daily Argentine FX regime. The gallery below spans the three regions; every row resolves to a full record in the <a href="https://claude.ai/code/artifact/503997ee-4922-4afa-9ec7-87c8bfc8605d">interactive llm-wiki prototype</a>, with original-language clause anchors. All rows are illustrative and abbreviated.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Region</th><th>GR3 Record</th><th>Regulator · return</th><th>Source language</th><th>Cadence</th><th>Trigger essence</th></tr></thead>
+      <tbody>
+        <tr><td class="k">EMEA</td><td><code>gr3:de.bbk.awv-z4</code></td><td>Deutsche Bundesbank · Z4</td><td>German</td><td>Monthly</td><td>Cross-border &gt; EUR 12,500</td></tr>
+        <tr><td class="k">EMEA</td><td><code>gr3:fr.bdf.eco</code></td><td>Banque de France · ECO</td><td>French</td><td>Monthly</td><td>Direct declarants ≥ EUR 30M/yr</td></tr>
+        <tr><td class="k">EMEA</td><td><code>gr3:gb.boe.form-bt</code></td><td>Bank of England · Form BT</td><td>English</td><td>Monthly / quarterly</td><td>Scheduled statistical return</td></tr>
+        <tr><td class="k">EMEA</td><td><code>gr3:ch.snb.bop</code></td><td>Swiss National Bank · BoP surveys</td><td>German</td><td>Quarterly</td><td>SNB-designated entities</td></tr>
+        <tr><td class="k">EMEA</td><td><code>gr3:ae.cbuae.brf</code></td><td>CBUAE · BRF schedules</td><td>Arabic</td><td>Monthly / quarterly</td><td>Licensed banks, corridor schedules</td></tr>
+        <tr><td class="k">EMEA</td><td><code>gr3:za.sarb.bopcus</code></td><td>SARB FinSurv · BOPCUS</td><td>English</td><td>Per event</td><td>Every cross-border customer payment, T+2</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:jp.boj.fefta-bop</code></td><td>Bank of Japan · FEFTA BOP</td><td>Japanese</td><td>Per txn + monthly</td><td>Cross-border &gt; JPY 30M</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:cn.safe.bop</code></td><td>SAFE · BOP declaration</td><td>Chinese</td><td>Per txn, T+1</td><td>All resident ↔ non-resident transactions</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:hk.hkma.ret</code></td><td>HKMA · cross-border return</td><td>English / Chinese</td><td>Monthly</td><td>Authorized institutions, positions + flows</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:kr.bok.fx-report</code></td><td>Bank of Korea · FX network</td><td>Korean</td><td>Per txn + monthly</td><td>&gt; USD 50,000 equivalent</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:sg.mas.mas610</code></td><td>MAS · MAS 610</td><td>English</td><td>Monthly / quarterly</td><td>Full statistical return</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:in.rbi.feters</code></td><td>RBI · FETERS R-Return</td><td>English</td><td>Fortnightly</td><td>All FX, purpose-coded</td></tr>
+        <tr><td class="k">APAC</td><td><code>gr3:au.austrac.ifti</code></td><td>AUSTRAC · IFTI-E</td><td>English</td><td>Per event</td><td>Every IFTI — no threshold, 10 business days</td></tr>
+        <tr><td class="k">LATAM</td><td><code>gr3:br.bcb.fx-flows</code></td><td>BCB · FX &amp; capital flows</td><td>Portuguese</td><td>Per event + periodic</td><td>FX registered at transaction time</td></tr>
+        <tr><td class="k">LATAM</td><td><code>gr3:mx.banxico.fx</code></td><td>Banxico · FX &amp; transfers</td><td>Spanish</td><td>Daily + monthly</td><td>Credit institutions, positions + detail</td></tr>
+        <tr><td class="k">LATAM</td><td><code>gr3:ar.bcra.cambios</code></td><td>BCRA · operaciones de cambio</td><td>Spanish</td><td>Daily, T+1</td><td>Every FX-market operation</td></tr>
+        <tr><td class="k">LATAM</td><td><code>gr3:co.banrep.cambio</code></td><td>BanRep · declaración de cambio</td><td>Spanish</td><td>Per event</td><td>Declarable operations via IMCs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Two excerpts show why one format is enough — the same YAML keys carry any script, and the rule twin stays machine-evaluable regardless of the source language:</p>
+
+  <pre><code># Japan — original text anchored in Japanese
+gr3: gr3:jp.boj.fefta-bop@3.1.0
+type: gr3.record
+legal_basis: [{ cite: 外為法 第55条, source: src/jp/fefta-2024.ja.pdf#art-55 }]
+obligation:
+  trigger:
+    prose: &gt;  Cross-border payments above JPY 30,000,000 …
+    rule:  |  amount_jpy &gt; 30000000 and is_cross_border(txn)</code></pre>
+
+  <pre><code># Argentina — original text anchored in Spanish
+gr3: gr3:ar.bcra.cambios@2.3.0
+type: gr3.record
+legal_basis: [{ cite: Régimen Informativo — Com. “A”, source: src/ar/bcra-cambios.es.pdf#com-a }]
+obligation:
+  trigger:
+    prose: &gt;  Toda operación concertada en el mercado de cambios …
+    rule:  |  txn.market == "cambios" → report T+1</code></pre>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6" class="prose">
+  <h2><span class="sn">6</span>The system in one picture</h2>
+  <hr class="h2-rule">
+
+  <figure>
+    <div class="fig-frame">
+    <svg class="fig" viewBox="0 0 1040 400" role="img" aria-label="End-to-end flow: regulatory sources in many languages are captured by the JARO AI Agents, drafted into the llm-wiki as GR3 Record pages, reviewed and approved by Reg Ops checkers, compiled into the RKB, and consumed by regulatory reports, RFI responses, audit packs, and ad hoc extracts surfaced in RegGPT.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" class="arrow"/>
+        </marker>
+        <marker id="ah-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" class="arrow-accent"/>
+        </marker>
+      </defs>
+      <text x="90" y="34" class="t-lane" text-anchor="middle">Sources</text>
+      <text x="295" y="34" class="t-lane" text-anchor="middle">Makers</text>
+      <text x="547" y="34" class="t-lane" text-anchor="middle">System of record</text>
+      <text x="790" y="34" class="t-lane" text-anchor="middle">Index</text>
+      <text x="950" y="34" class="t-lane" text-anchor="middle">RegGPT surfaces</text>
+
+      <rect x="20" y="60" width="150" height="62" class="box"/>
+      <text x="95" y="86" class="t-bold" text-anchor="middle">Regulator portals</text>
+      <text x="95" y="104" class="t-sub" text-anchor="middle">gazettes · circulars</text>
+      <rect x="20" y="146" width="150" height="62" class="box"/>
+      <text x="95" y="172" class="t-bold" text-anchor="middle">Filings &amp; schemas</text>
+      <text x="95" y="190" class="t-sub" text-anchor="middle">PDF · XSD · XBRL</text>
+      <rect x="20" y="232" width="150" height="62" class="box"/>
+      <text x="95" y="258" class="t-bold" text-anchor="middle">Legal intel feeds</text>
+      <text x="95" y="276" class="t-sub" text-anchor="middle">amendments · alerts</text>
+      <text x="95" y="326" class="t-sub" text-anchor="middle">60+ markets · 20+ languages</text>
+
+      <rect x="230" y="110" width="130" height="134" class="box"/>
+      <text x="295" y="140" class="t-bold" text-anchor="middle">JARO AI Agents</text>
+      <text x="295" y="164" class="t-sub" text-anchor="middle">scan · extract</text>
+      <text x="295" y="182" class="t-sub" text-anchor="middle">translate · map</text>
+      <text x="295" y="200" class="t-sub" text-anchor="middle">encode · QA</text>
+      <text x="295" y="228" class="t-sub t-accent" text-anchor="middle">makers, never approvers</text>
+
+      <line x1="170" y1="91" x2="225" y2="140" class="edge" marker-end="url(#ah)"/>
+      <line x1="170" y1="177" x2="225" y2="177" class="edge" marker-end="url(#ah)"/>
+      <line x1="170" y1="263" x2="225" y2="214" class="edge" marker-end="url(#ah)"/>
+
+      <rect x="450" y="98" width="195" height="158" class="box-accent"/>
+      <text x="547" y="130" class="t-big" text-anchor="middle">llm-wiki</text>
+      <text x="547" y="156" class="t-sub" text-anchor="middle">GR3 Record — one format,</text>
+      <text x="547" y="173" class="t-sub" text-anchor="middle">by region and country</text>
+      <text x="547" y="197" class="t-sub" text-anchor="middle">versioned · clause-anchored</text>
+      <text x="547" y="215" class="t-sub" text-anchor="middle">original + English</text>
+      <text x="547" y="240" class="t-sub" text-anchor="middle">two clocks preserved</text>
+
+      <line x1="360" y1="177" x2="444" y2="177" class="edge" marker-end="url(#ah)"/>
+      <text x="402" y="167" class="t-edge" text-anchor="middle">draft</text>
+
+      <rect x="470" y="310" width="155" height="58" class="box"/>
+      <text x="547" y="334" class="t-bold" text-anchor="middle">Reg Ops checkers</text>
+      <text x="547" y="352" class="t-sub" text-anchor="middle">approve · comment · regen</text>
+      <path d="M 520 310 L 520 262" class="edge" marker-end="url(#ah)"/>
+      <path d="M 575 262 L 575 304" class="edge" marker-end="url(#ah)"/>
+      <text x="468" y="290" class="t-edge" text-anchor="end">approve</text>
+      <text x="585" y="290" class="t-edge">review</text>
+
+      <line x1="645" y1="177" x2="714" y2="177" class="edge-accent" marker-end="url(#ah-acc)"/>
+      <text x="680" y="165" class="t-edge" text-anchor="middle">compile</text>
+      <text x="680" y="196" class="t-edge" text-anchor="middle">on approval</text>
+
+      <rect x="720" y="110" width="140" height="134" class="box"/>
+      <text x="790" y="140" class="t-bold" text-anchor="middle">RKB</text>
+      <text x="790" y="164" class="t-sub" text-anchor="middle">structured store</text>
+      <text x="790" y="182" class="t-sub" text-anchor="middle">vector index</text>
+      <text x="790" y="200" class="t-sub" text-anchor="middle">knowledge graph</text>
+      <text x="790" y="228" class="t-sub" text-anchor="middle">as-of, both clocks</text>
+
+      <line x1="860" y1="130" x2="906" y2="92" class="edge" marker-end="url(#ah)"/>
+      <line x1="860" y1="160" x2="906" y2="152" class="edge" marker-end="url(#ah)"/>
+      <line x1="860" y1="195" x2="906" y2="212" class="edge" marker-end="url(#ah)"/>
+      <line x1="860" y1="225" x2="906" y2="272" class="edge" marker-end="url(#ah)"/>
+      <text x="916" y="96" class="t">Regulatory reports</text>
+      <text x="916" y="156" class="t">RFI responses</text>
+      <text x="916" y="216" class="t">Audit packs</text>
+      <text x="916" y="276" class="t">Ad hoc extracts</text>
+    </svg>
+    </div>
+    <figcaption><span class="fig-n">Fig. 1</span>JARO agents carry raw regulation into the wiki; Reg Ops gates the wiki; the RKB serves only what passed the gate — and everything downstream cites its clause.</figcaption>
+  </figure>
+
+  <p>The full mechanism — lifecycle states, CI gates, retrieval contract, report-generation runtime, change management — is specified in the companion <a href="https://claude.ai/code/artifact/40348ebb-09eb-4cc1-a672-2ad753e98a33">system design</a>, and the working experience is demonstrated in the <a href="https://claude.ai/code/artifact/503997ee-4922-4afa-9ec7-87c8bfc8605d">interactive llm-wiki prototype</a>. This paper concentrates on the concept and on how to realize it in the existing stack.</p>
+</section>
+
+
+<!-- ============ 7 ============ -->
+<section id="s7" class="prose">
+  <h2><span class="sn">7</span>Makers, checkers, and the regeneration loop</h2>
+  <hr class="h2-rule">
+  <p>JARO agents do the mechanical work — horizon scanning, extraction, translation, element mapping, rule encoding, cross-jurisdiction QA — and everything they produce is a <em>draft</em> in the wiki's format. Reg Ops owns judgment: the country SME is the checker on every record in their jurisdiction, and a four-eyes approver co-signs anything entering effect. When a checker doesn't like a draft, they do not edit around the agent — they leave feedback on the thread, and that comment becomes the instruction for regeneration: the checker asks JARO to regenerate the regulatory report, RFI response, audit pack, or ad hoc extract with the feedback applied, and the new draft returns to the same review gate.</p>
+  <div class="failclosed"><span class="t-label">Fail-closed, by construction</span><p>Agents cannot approve, merge, or file — enforced by runtime policy, not convention. The RKB serves, and filings use, only checker-approved, effective versions. Draft and in-review states are invisible downstream.</p></div>
+  <p>This division is what makes the economics work: agent hours absorb transcription and translation; scarce SME hours concentrate on interpretation — the work only humans can be accountable for.</p>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8" class="prose">
+  <h2><span class="sn">8</span>Integrating into RegGPT: the platform today</h2>
+  <hr class="h2-rule">
+  <p>RegGPT is the Agentic Reg Ops product, supported by JARO AI Agents and the RKB — and GR3 builds on this. An independent review of the three repositories was conducted for this paper to plan that integration, and its finding fits in one sentence: <strong>RegGPT is not a green field — it already has the right vocabulary in its UI, sitting on two backends that do much of the heavy lifting.</strong></p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Service</th><th>Stack</th><th>What it already does</th></tr></thead>
+      <tbody>
+        <tr><td class="k">RegGPT<br><span style="font-family:var(--mono);font-size:0.72rem;font-weight:400">:3001</span></td><td>Next.js 16 App Router, React 19, Tailwind, ~4.3k LOC</td><td>13 screens: dashboard with regional coverage, a strong chat copilot (sessions, streamed answers, <code>[n]</code> citation pills, provenance panel), jurisdiction grid (46 countries), compliance lists for policies / RFIs / audits / reports, a basic knowledge-base search page, dark mode, coherent design system</td></tr>
+        <tr><td class="k">JARO<br><span style="font-family:var(--mono);font-size:0.72rem;font-weight:400">:8100</span></td><td>FastAPI + google-adk</td><td>46 country agents plus four capability agents (<code>rfi_handler</code>, <code>audit_support</code>, <code>compliance_monitor</code>, <code>regulatory_change</code>); endpoints for chat, tasks, <code>POST /v1/rfi</code>, <code>POST /v1/audit</code>; an agent-to-agent message bus</td></tr>
+        <tr><td class="k">RKB<br><span style="font-family:var(--mono);font-size:0.72rem;font-weight:400">:8200</span></td><td>FastAPI + SQLite/FTS5</td><td>Per-jurisdiction namespaces (global + 43 countries + news), Markdown and PDF ingestion, BM25 full-text search with a rerank pass, a <code>Requirement</code> model, a source crawler on a 60-minute schedule, optional Postgres sync and a stubbed Milvus vector integration</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Three observations matter most for planning:</p>
+  <ol>
+    <li><strong>The RKB's <code>Requirement</code> model is a proto-GR3.</strong> It already carries id, country, framework, title, category, effective date, and source references. What it lacks is exactly the governance half of the GR3: lifecycle status, version chain, approvals, clause anchors, and the two clocks.</li>
+    <li><strong>The regeneration endpoints already exist and are unused.</strong> JARO exposes RFI and audit endpoints, and RegGPT's API client has typed functions for them (plus RKB search and requirements) that no screen calls yet. The feedback-to-regeneration loop is a wiring job before it is a build job.</li>
+    <li><strong>The seams were left on purpose.</strong> Empty scaffolded routes (<code>app/workspace/</code> — advertised in the launcher as the "Reg Ops Console" — plus stubs for RFI, audit, reports, and a stack-search API route) mark exactly where the checker workbench and the RKB search endpoint were meant to land.</li>
+  </ol>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="s9" class="prose">
+  <h2><span class="sn">9</span>Gap analysis: what the proposal needs that the estate lacks</h2>
+  <hr class="h2-rule">
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Capability</th><th>Today</th><th>Verdict</th><th>Path</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Version control</td><td>RegGPT repo has a git branch with <b>zero commits</b></td><td class="gap">Blocker</td><td>Initialize history and commit the baseline before any of this work starts</td></tr>
+        <tr><td class="k">Identity &amp; roles</td><td>No auth anywhere — no users, sessions, or roles; owner fields are free text</td><td class="gap">Blocker</td><td>Maker-checker needs attributable approvals: add a signed-session model with maker / checker / four-eyes roles scoped by jurisdiction</td></tr>
+        <tr><td class="k">Wiki pages &amp; routes</td><td>No dynamic routes; every list is terminal; no record detail pages</td><td class="gap">Build</td><td><code>/wiki/[region]/[country]/[slug]</code> route tree rendering GR3 human and agent views</td></tr>
+        <tr><td class="k">Versioned persistence</td><td>UI runs on hardcoded mock arrays; RKB documents have no versions, PUT, or delete</td><td class="gap">Build</td><td>Extend RKB storage: <code>gr3_versions</code>, <code>approvals</code>, <code>comments</code> tables; compile-on-approve</td></tr>
+        <tr><td class="k">Markdown &amp; frontmatter</td><td>Hand-rolled renderer: no tables, links, or YAML frontmatter</td><td class="part">Extend</td><td>Adopt a full Markdown renderer plus frontmatter parsing; keep the existing citation-pill mechanism</td></tr>
+        <tr><td class="k">Diff &amp; review UX</td><td>None</td><td class="gap">Build</td><td>Line-diff component for draft review in the workbench (small, well-understood build)</td></tr>
+        <tr><td class="k">Keyword search</td><td>FTS5 + BM25 + rerank, namespaced per jurisdiction</td><td class="ok">Reuse</td><td>Wire the existing search API to the UI's dormant client function</td></tr>
+        <tr><td class="k">Vector index</td><td>Milvus integration stubbed, disabled, no real embeddings</td><td class="part">Extend</td><td>Enable with a multilingual embedding model so English queries retrieve original-language clauses</td></tr>
+        <tr><td class="k">Knowledge graph</td><td>Absent</td><td class="gap">Build</td><td>Start as an edges table over GR3 typed links (implements / supersedes / maps-to); a graph database is a later optimization</td></tr>
+        <tr><td class="k">Horizon scanning</td><td>Crawler + scheduler + PDF discovery already running</td><td class="ok">Reuse</td><td>Point crawl deltas at JARO to open draft tickets — the change-management trigger</td></tr>
+        <tr><td class="k">Regeneration flows</td><td>JARO RFI/audit endpoints live; UI functions written but never called</td><td class="ok">Reuse</td><td>Wire workbench feedback into the request payloads; return drafts to the review gate</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10" class="prose">
+  <h2><span class="sn">10</span>Build plan: four increments, each independently useful</h2>
+  <hr class="h2-rule">
+  <ol>
+    <li><strong>A — The wiki spine.</strong> Ratify the GR3 schema; add versioned GR3 storage to the RKB; build the <code>/wiki</code> route tree in RegGPT with human and agent views; backfill three pilot jurisdictions (one Latin-script non-English, one CJK, one English). <em>Deliverable: a browsable, citable corpus.</em></li>
+    <li><strong>B — Maker-checker.</strong> Identity and roles; draft / in-review / approved / effective status ladder; comments; approve and four-eyes actions; the checker workbench at the reserved <code>/workspace</code> route; JARO drafting wired to open pull-request-style drafts. <em>Deliverable: the governance loop, live.</em></li>
+    <li><strong>C — RKB compile &amp; the retrieval contract.</strong> Compile on approval into FTS + vector + edges; enforce citation-bearing answers in chat; time-travel queries on both clocks; wire RFI and audit regeneration with checker feedback in the payload. <em>Deliverable: RFIs, audits, and extracts served from the corpus.</em></li>
+    <li><strong>D — Report generation &amp; change management.</strong> Evaluate GR3 rule twins against payment data for report selection and validation; crawler deltas auto-open redraft tickets; parallel-run one pilot return end-to-end against the incumbent process. <em>Deliverable: filings traceable to clauses.</em></li>
+  </ol>
+  <p>Sequencing rationale: A and B are prerequisites for trust; C is where daily value lands (RFI and audit time collapses); D is where the program pays for itself. Each increment ships something Reg Ops uses on its own merits.</p>
+</section>
+
+<!-- ============ 11 ============ -->
+<section id="s11" class="prose">
+  <h2><span class="sn">11</span>Governance &amp; controls</h2>
+  <hr class="h2-rule">
+  <ul>
+    <li><strong>Policy-bounded agents.</strong> Runtime policy limits every JARO agent to drafting and commenting; approval, merge, and filing actions are structurally unavailable to them.</li>
+    <li><strong>Grounding guardrails.</strong> Drafted facts without source-clause citations are rejected before review; translations carry per-segment provenance; PII screening on all outputs.</li>
+    <li><strong>Signed governance events.</strong> Every agent action emits a signed event, so each GR3's audit trail names the agent, model, prompt version, and policy context that drafted it — alongside the humans who approved it.</li>
+    <li><strong>Bitemporal audit.</strong> "What did the rule require in March, and what did we believe it required?" are both single queries, not document hunts.</li>
+  </ul>
+</section>
+
+<!-- ============ 12 ============ -->
+<section id="s12" class="prose">
+  <h2><span class="sn">12</span>Risks &amp; mitigations</h2>
+  <hr class="h2-rule">
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Mistranslation or misextraction</td><td>Originals immutable and clause-anchored; every fact cites; segment-aligned translations; SME checker per jurisdiction; four-eyes before effect</td></tr>
+        <tr><td class="k">Hallucinated requirements</td><td>Grounding guardrail rejects unanchored claims; CI validates schema, anchors, and prose/rule consistency before any human review</td></tr>
+        <tr><td class="k">Corpus staleness</td><td>Crawler-driven change detection; mandatory <code>review_by</code> dates paging SMEs; QA agent treats expiry as a finding</td></tr>
+        <tr><td class="k">Over-trust in generated answers</td><td>RKB serves only approved + effective; answers without citations are refused; drafts watermark as non-authoritative</td></tr>
+        <tr><td class="k">Data residency</td><td>Jurisdiction-scoped routing keeps in-country documents on in-country model endpoints where law requires</td></tr>
+        <tr><td class="k">Checker bottleneck</td><td>CI does the mechanical review; agents pre-cluster and prioritize drafts; review effort is the tracked metric from the pilot onward</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 13 ============ -->
+<section id="s13" class="prose">
+  <h2><span class="sn">13</span>Measures of success</h2>
+  <hr class="h2-rule">
+  <ul>
+    <li><strong>Citation coverage:</strong> the fraction of RFI and audit responses assembled entirely from RKB citations — the direct measure of the interpretation layer leaving people's heads.</li>
+    <li><strong>Checker economics:</strong> median SME review time per GR3 draft, and the correction rate on agent drafts, tracked from the first pilot.</li>
+    <li><strong>Filing traceability:</strong> share of filed reports where every figure traces to <code>gr3@version#clause</code> automatically.</li>
+    <li><strong>Change latency:</strong> days from regulator amendment to an effective, approved GR3 version.</li>
+  </ul>
+  <p>The end state is simple to say and now concrete to build: one format, every regulator — drafted by agents, approved by Reg Ops, served with citations, and filed with proof.</p>
+</section>
+
+</div>
